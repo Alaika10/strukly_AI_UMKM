@@ -1,0 +1,28 @@
+import express from "express";
+import cors from "cors";
+
+import authRoutes from "./routes/Auth.Routes.js";
+import transactionRoutes from "./routes/Transaction.Routes.js";
+import dashboardRoutes from "./routes/Dashboard.Routes.js";
+import taxRoutes from "./routes/Tax.Routes.js";
+import riskRoutes from "./routes/Risk.Routes.js";
+import forecastRoutes from "./routes/Forecast.Routes.js";
+import insightRoutes from "./routes/Insight.Routes.js";
+import alertRoutes from "./routes/Alert.Routes.js";
+
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/auth", authRoutes);
+app.use("/api/transactions", transactionRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/tax", taxRoutes);
+app.use("/api/risk", riskRoutes);
+app.use("/api/forecast", forecastRoutes);
+app.use("/api/insight", insightRoutes);
+app.use("/api/alert", alertRoutes);
+
+export default app;

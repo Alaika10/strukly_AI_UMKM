@@ -1,0 +1,371 @@
+{
+    "info": {
+        "_postman_id": "1c9b1a8f-2f4e-4837-8a1a-3e18385ee6f0",
+        "name": "Finance App Backend",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Koleksi Postman untuk menguji backend Finance App dan memastikan data masuk ke database melalui API."
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test.user@example.com\",\n  \"password\": \"Test1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "register"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "  pm.environment.set('accessToken', jsonData.token);",
+                                    "  console.log('accessToken saved');",
+                                    "} else if (jsonData.error) {",
+                                    "  console.error('Login error:', jsonData.error);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"test.user@example.com\",\n  \"password\": \"Test1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"test.user@example.com\",\n  \"new_password\": \"NewPass123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/forgot-password",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "forgot-password"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Transactions",
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{accessToken}}",
+                        "type": "string"
+                    }
+                ]
+            },
+            "item": [
+                {
+                    "name": "Create Transaction",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "const id = jsonData.transactionId || jsonData.id || (Array.isArray(jsonData) && jsonData[0]?.transactionId) || (Array.isArray(jsonData) && jsonData[0]?.id);",
+                                    "if (id) {",
+                                    "  pm.environment.set('transactionId', id);",
+                                    "  pm.globals.set('transactionId', id);",
+                                    "  pm.test('transactionId is set', () => pm.expect(id).to.be.a('number'));",
+                                    "  console.log('transactionId saved:', id);",
+                                    "} else if (jsonData.error) {",
+                                    "  console.error('Create transaction error:', jsonData.error);",
+                                    "  pm.test('create transaction response has no id', () => pm.expect.fail('No transactionId in response'));",
+                                    "} else {",
+                                    "  console.error('Create transaction response did not include id', jsonData);",
+                                    "  pm.test('create transaction response did not include id', () => pm.expect.fail('No transactionId in response'));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"category_id\": 1,\n  \"amount\": 150000,\n  \"merchant\": \"Alfamart\",\n  \"transaction_date\": \"2026-04-27\",\n  \"type\": \"expense\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/transactions",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "transactions"]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Transaction from OCR",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "const id = jsonData.transactionId || jsonData.id || (Array.isArray(jsonData) && jsonData[0]?.transactionId) || (Array.isArray(jsonData) && jsonData[0]?.id);",
+                                    "if (id) {",
+                                    "  pm.environment.set('transactionId', id);",
+                                    "  pm.globals.set('transactionId', id);",
+                                    "  pm.test('transactionId is set', () => pm.expect(id).to.be.a('number'));",
+                                    "  console.log('transactionId saved:', id);",
+                                    "} else if (jsonData.error) {",
+                                    "  console.error('Create OCR transaction error:', jsonData.error);",
+                                    "  pm.test('create OCR transaction response has no id', () => pm.expect.fail('No transactionId in response'));",
+                                    "} else {",
+                                    "  console.error('Create OCR transaction response did not include id', jsonData);",
+                                    "  pm.test('create OCR transaction response did not include id', () => pm.expect.fail('No transactionId in response'));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"merchant\": \"Gojek\",\n  \"amount\": 45000,\n  \"date\": \"2026-04-27\",\n  \"type\": \"expense\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/transactions/ocr",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "transactions", "ocr"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get All Transactions",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/transactions",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "transactions"]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Transaction",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "let transactionId = pm.environment.get('transactionId');",
+                                    "if (!transactionId) {",
+                                    "  transactionId = pm.globals.get('transactionId');",
+                                    "  if (transactionId) {",
+                                    "    pm.environment.set('transactionId', transactionId);",
+                                    "    console.log('transactionId copied from globals to environment:', transactionId);",
+                                    "  }",
+                                    "}",
+                                    "if (!transactionId) {",
+                                    "  throw new Error('transactionId is not set. Run Create Transaction first or set transactionId in environment.');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"merchant\": \"Updated Store\",\n  \"amount\": 175000\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/transactions/{{transactionId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "transactions", "{{transactionId}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Transaction",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "let transactionId = pm.environment.get('transactionId');",
+                                    "if (!transactionId) {",
+                                    "  transactionId = pm.globals.get('transactionId');",
+                                    "  if (transactionId) {",
+                                    "    pm.environment.set('transactionId', transactionId);",
+                                    "    console.log('transactionId copied from globals to environment:', transactionId);",
+                                    "  }",
+                                    "}",
+                                    "if (!transactionId) {",
+                                    "  throw new Error('transactionId is not set. Run Create Transaction first or set transactionId in environment.');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": ""
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/transactions/{{transactionId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "transactions", "{{transactionId}}"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Dashboard & Reports",
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{accessToken}}",
+                        "type": "string"
+                    }
+                ]
+            },
+            "item": [
+                {
+                    "name": "Dashboard Summary",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/dashboard/summary",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "dashboard", "summary"]
+                        }
+                    }
+                },
+                {
+                    "name": "Tax",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/tax",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "tax"]
+                        }
+                    }
+                },
+                {
+                    "name": "Risk",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/risk",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "risk"]
+                        }
+                    }
+                },
+                {
+                    "name": "Forecast",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/forecast",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "forecast"]
+                        }
+                    }
+                },
+                {
+                    "name": "Insight",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/insight",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "insight"]
+                        }
+                    }
+                },
+                {
+                    "name": "Alert",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alert",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alert"]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
