@@ -177,15 +177,16 @@
                     ],
                     "request": {
                         "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
+                        "header": [],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"merchant\": \"Gojek\",\n  \"amount\": 45000,\n  \"date\": \"2026-04-27\",\n  \"type\": \"expense\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": "upload/receipt.png"
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/transactions/ocr",
