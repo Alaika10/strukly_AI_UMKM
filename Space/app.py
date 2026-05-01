@@ -16,12 +16,13 @@ app.add_middleware(
 )
 
 paddle_engine = PaddleOCR(
-    lang='en',
+    lang='id',
     show_log=False,
     use_angle_cls=False,
     enable_mkldnn=True,
-    cpu_threads=4,
-    det_limit_side_len=736
+    cpu_threads=2,
+    ocr_version="PP-OCRv4",
+    det_limit_side_len=512
 )
 
 @app.get("/")
@@ -35,7 +36,7 @@ async def proses_gambar_paddle(file: UploadFile = File(...)):
         nparr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        result = paddle_engine.ocr(img, cls=True)
+        result = paddle_engine.ocr(img)
         
         teks_terbaca = []
         if result and result[0]:
