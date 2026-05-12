@@ -105,7 +105,7 @@ export const forgotPassword = async (req, res) => {
 
         const hashed = await bcrypt.hash(new_password, 10);
 
-        await updatePassword(email, hashed);
+        await updatePassword(user.id, hashed);
 
         res.json({
             message: "Password berhasil diubah",

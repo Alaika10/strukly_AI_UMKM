@@ -9,6 +9,8 @@ import { mapCategory } from "../utils/categoryMapper.js";
 import { getCategoryByName } from "../models/CategoryModel.js";
 import { sendToOCR } from "../service/OcrService.js";
 import { parseOCRText } from "../utils/ocrParser.js";
+import { createNotification } from "../models/NotificationModel.js";
+
 
 // CREATE MANUAL
 
@@ -39,6 +41,11 @@ export const create = async (req, res) => {
         };
 
         const result = await createTransaction(mappedData);
+
+        // Add Notification
+        const notifType = result.type === "income" ? "income" : "expense";
+        const notifMsg = result.type === "income" ? `Pemasukan baru tercatat: Rp ${Number(result.amount).toLocaleString()}` : `Pengeluaran baru tercatat: Rp ${Number(result.amount).toLocaleString()}`;
+        await createNotification(req.user.id, notifType, notifMsg);
 
         res.json({
             ...result,
@@ -83,6 +90,13 @@ export const createFromOCR = async (req, res) => {
         };
 
         const result = await createTransaction(mappedData);
+
+        // Add Notification
+        await createNotification(
+            req.user.id,
+            "expense",
+            `Pengeluaran baru (Auto) tercatat: Rp ${Number(result.amount).toLocaleString()}`,
+        );
 
         res.json({
             ...result,

@@ -9,6 +9,9 @@ import riskRoutes from "./routes/Risk.Routes.js";
 import forecastRoutes from "./routes/Forecast.Routes.js";
 import insightRoutes from "./routes/Insight.Routes.js";
 import alertRoutes from "./routes/Alert.Routes.js";
+import settingsRoutes from "./routes/Settings.Routes.js";
+import notificationRoutes from "./routes/Notification.Routes.js";
+
 
 
 const app = express();
@@ -24,5 +27,8 @@ app.use("/api/risk", riskRoutes);
 app.use("/api/forecast", forecastRoutes);
 app.use("/api/insight", insightRoutes);
 app.use("/api/alert", alertRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 
 export default app;
