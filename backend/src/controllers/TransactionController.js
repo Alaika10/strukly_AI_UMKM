@@ -70,21 +70,34 @@ export const createFromOCR = async (req, res) => {
             req.file.originalname,
         );
 
-        const rawText = ocrResult.ocr_mentah || "";
+        if (ocrResult.sukses === false) {
+            return res.status(400).json({ error: ocrResult.pesan || "Gagal memproses gambar" });
+        }
 
+        const rawText = ocrResult.ocr_mentah || "";
         const parsed = parseOCRText(rawText);
 
-        // Mapping kategori dari teks
-        const categoryName = mapCategory(rawText);
+        // AI extracted fields or fallback to regex parser
+        let amount = ocrResult.total;
+        if (!amount) amount = parsed.amount;
+        if (typeof amount === "string") {
+            const match = amount.match(/\d[\d.,]*/);
+            amount = match ? parseInt(match[0].replace(/[.,]/g, "")) : 0;
+        }
+
+        const merchant = ocrResult.merchant && ocrResult.merchant !== "Tidak ditemukan" ? ocrResult.merchant : parsed.merchant;
+        const transaction_date = ocrResult.date && ocrResult.date !== "Tidak ditemukan" ? ocrResult.date : parsed.date;
+        const categoryName = ocrResult.classes && ocrResult.classes !== "Tidak ditemukan" ? ocrResult.classes : mapCategory(rawText);
+        const items = ocrResult.items || [];
+
         const category = await getCategoryByName(categoryName);
 
-        // sementara parsing masih dummy
         const mappedData = {
             user_id: req.user.id,
             category_id: category?.id || 1,
-            amount: parsed.amount,
-            merchant: parsed.merchant,
-            transaction_date: parsed.date,
+            amount: amount || 0,
+            merchant: merchant || "Unknown",
+            transaction_date: transaction_date || new Date().toISOString().split("T")[0],
             source: "auto",
             type: "expense",
         };
@@ -103,6 +116,7 @@ export const createFromOCR = async (req, res) => {
             transactionId: result?.id,
             raw_text: rawText,
             mapped_category: categoryName,
+            items: items,
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
