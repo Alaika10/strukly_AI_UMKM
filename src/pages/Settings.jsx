@@ -1,15 +1,17 @@
-import { useState } from 'react'; 
+import { useState, useEffect } from 'react'; 
 import { useLocation } from 'react-router-dom';
+import { api } from '../services/api';
 
-const Settings = () => {
+const Settings = ({ currentUser, onUpdateUser }) => {
   const location = useLocation();
   
-  // Langsung set nilai awal berdasarkan location.state, 
+  // Langsung set nilai awal berdasarkan location.state
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'profil');
 
   // State untuk form Profil Bisnis
-  const [businessName, setBusinessName] = useState('Kopi Senja Utama');
-  const [category, setCategory] = useState('f&b');
+  const [businessName, setBusinessName] = useState(currentUser?.business_name || currentUser?.name || 'Kopi Senja Utama');
+  const [category, setCategory] = useState(currentUser?.business_category || 'f&b');
+  const [logoUrl, setLogoUrl] = useState(currentUser?.logo_url || '');
 
   // State untuk form Akun & Keamanan
   const [currentPassword, setCurrentPassword] = useState('');
@@ -22,6 +24,130 @@ const Settings = () => {
   const [notifyDailyCashflow, setNotifyDailyCashflow] = useState(true);
   const [notifySecurity, setNotifySecurity] = useState(true);
   const [notifySystem, setNotifySystem] = useState(true);
+
+  const [loading, setLoading] = useState(false);
+
+  // Ambil profil bisnis terbaru saat mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await api.settings.getProfile();
+        if (profile) {
+          setBusinessName(profile.business_name || profile.name || '');
+          setCategory(profile.business_category || 'f&b');
+          setLogoUrl(profile.logo_url || '');
+          setIs2FAEnabled(!!profile.two_factor_enabled);
+          
+          // Set preferences
+          setNotifyTax(profile.notif_tax_reminder !== false);
+          setNotifyDailyCashflow(profile.notif_daily_summary !== false);
+          setNotifySecurity(profile.notif_monthly_report !== false);
+          setNotifySystem(profile.notif_stock_reminder !== false);
+
+          if (onUpdateUser) {
+            onUpdateUser({ ...currentUser, ...profile });
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memuat profil bisnis:", err);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // Handler Simpan Profil Bisnis
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!businessName) {
+      alert("Nama bisnis tidak boleh kosong!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await api.settings.updateProfile({
+        name: currentUser?.name || 'MSME User',
+        business_name: businessName,
+        business_category: category,
+        logo_url: logoUrl
+      });
+      
+      alert(updated.message || "Profil bisnis berhasil disimpan!");
+      
+      // Update local storage & global user state
+      const newUserObj = { ...currentUser, ...updated.user };
+      localStorage.setItem('user', JSON.stringify(newUserObj));
+      if (onUpdateUser) onUpdateUser(newUserObj);
+    } catch (err) {
+      alert(err.message || "Gagal menyimpan profil bisnis.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler Simpan Keamanan
+  const handleSaveSecurity = async (e) => {
+    e.preventDefault();
+    if (newPassword && newPassword !== confirmPassword) {
+      alert("Konfirmasi kata sandi baru tidak cocok!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        two_factor_enabled: is2FAEnabled
+      };
+      if (currentPassword && newPassword) {
+        payload.current_password = currentPassword;
+        payload.new_password = newPassword;
+      }
+
+      const res = await api.settings.updateSecurity(payload);
+      alert(res.message || "Pengaturan keamanan berhasil diperbarui!");
+      
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      alert(err.message || "Gagal memperbarui kata sandi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler Ganti Switch Notifikasi secara otomatis
+  const handleToggleNotification = async (type, checked) => {
+    let nextTax = notifyTax;
+    let nextDaily = notifyDailyCashflow;
+    let nextSecurity = notifySecurity;
+    let nextSystem = notifySystem;
+
+    if (type === 'tax') {
+      setNotifyTax(checked);
+      nextTax = checked;
+    } else if (type === 'daily') {
+      setNotifyDailyCashflow(checked);
+      nextDaily = checked;
+    } else if (type === 'security') {
+      setNotifySecurity(checked);
+      nextSecurity = checked;
+    } else if (type === 'system') {
+      setNotifySystem(checked);
+      nextSystem = checked;
+    }
+
+    try {
+      await api.settings.updateNotifications({
+        notif_stock_reminder: nextSystem,
+        notif_daily_summary: nextDaily,
+        notif_tax_reminder: nextTax,
+        notif_monthly_report: nextSecurity
+      });
+    } catch (err) {
+      console.error("Gagal menyimpan preferensi notifikasi:", err);
+    }
+  };
 
   return (
     <div className="p-8 lg:p-12 max-w-6xl mx-auto">
@@ -86,7 +212,7 @@ const Settings = () => {
               </div>
               <div className="md:col-span-8">
                 <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">Informasi Utama</h3>
-                <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                <form className="space-y-6" onSubmit={handleSaveProfile}>
                   <div>
                     <label className="block text-sm font-semibold text-on-surface mb-2" htmlFor="business-name">Nama Bisnis</label>
                     <input 
@@ -111,9 +237,13 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="pt-6 flex justify-end">
-                    <button type="submit" className="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95">
+                    <button 
+                      type="submit" 
+                      disabled={loading}
+                      className="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                    >
                       <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>save</span>
-                      Simpan Perubahan
+                      {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
                     </button>
                   </div>
                 </form>
@@ -131,14 +261,15 @@ const Settings = () => {
                 <div className="flex flex-col">
                   <label className="block text-xs font-semibold text-on-surface-variant mb-1.5" htmlFor="email">Email Utama</label>
                   <input 
-                    id="email" type="email" value="pemilik.bisnis@example.id" readOnly 
+                    id="email" type="email" value={currentUser?.email || 'pemilik.bisnis@example.id'} readOnly 
                     className="w-full bg-surface-container-high/50 border-none rounded-xl px-4 py-3.5 text-on-surface-variant cursor-not-allowed outline-none" 
                   />
                   <p className="mt-2 text-xs text-on-surface-variant">Email ini digunakan untuk login dan korespondensi resmi.</p>
                 </div>
               </div>
               <div className="h-px bg-outline-variant/10"></div>
-              <form onSubmit={(e) => e.preventDefault()}>
+              
+              <form onSubmit={handleSaveSecurity}>
                 <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">Ganti Kata Sandi</h3>
                 <div className="space-y-4">
                   <div>
@@ -183,9 +314,13 @@ const Settings = () => {
                   </label>
                 </div>
                 <div className="pt-10 flex justify-end">
-                  <button type="submit" className="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95">
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                  >
                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
-                    Simpan Perubahan Keamanan
+                    {loading ? 'Menyimpan...' : 'Simpan Perubahan Keamanan'}
                   </button>
                 </div>
               </form>
@@ -214,7 +349,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={notifyTax} onChange={() => setNotifyTax(!notifyTax)} />
+                    <input type="checkbox" className="sr-only peer" checked={notifyTax} onChange={(e) => handleToggleNotification('tax', e.target.checked)} />
                     <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
@@ -231,7 +366,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={notifyDailyCashflow} onChange={() => setNotifyDailyCashflow(!notifyDailyCashflow)} />
+                    <input type="checkbox" className="sr-only peer" checked={notifyDailyCashflow} onChange={(e) => handleToggleNotification('daily', e.target.checked)} />
                     <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
@@ -255,7 +390,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={notifySecurity} onChange={() => setNotifySecurity(!notifySecurity)} />
+                    <input type="checkbox" className="sr-only peer" checked={notifySecurity} onChange={(e) => handleToggleNotification('security', e.target.checked)} />
                     <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
@@ -272,7 +407,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={notifySystem} onChange={() => setNotifySystem(!notifySystem)} />
+                    <input type="checkbox" className="sr-only peer" checked={notifySystem} onChange={(e) => handleToggleNotification('system', e.target.checked)} />
                     <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>

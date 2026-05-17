@@ -2,23 +2,13 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 
-const History = () => {
+const History = ({ transactions = [] }) => {
   const location = useLocation();
 
   // State untuk Filter
   const [filterType, setFilterType] = useState(location.state?.filterType || 'all');
   const [filterMonth, setFilterMonth] = useState('all'); 
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Data Dummy Gabungan (Diperbanyak variasi bulannya untuk testing filter)
-  const dummyHistory = [
-    { id: 1, date: "24 Okt 2023, 14:20", type: "in", amount: 450000, title: "Penjualan Paket Sembako", category: "Makanan Berat", source: "Penjualan Langsung", refInfo: "Nota #TRX-00921" },
-    { id: 2, date: "24 Okt 2023, 10:15", type: "out", amount: 1200000, title: "Restock Beras Cianjur", category: "Bahan Baku", vendor: "IndoMarket Express", aiStatus: "Verified by AI", refInfo: "Struk #IM-9921" },
-    { id: 3, date: "23 Nov 2023, 18:45", type: "in", amount: 890000, title: "Penjualan Retail Harian", category: "Camilan", source: "Pesanan Online", refInfo: "Tunai" },
-    { id: 4, date: "12 Des 2023, 09:00", type: "out", amount: 842200, title: "Pembayaran Listrik", category: "Operasional", vendor: "PLN Persero", aiStatus: "Manual Input", refInfo: "Listrik Kantor" },
-    { id: 5, date: "15 Jan 2024, 15:30", type: "out", amount: 3120000, title: "Belanja Peralatan", category: "Peralatan", vendor: "Office Depot Central", aiStatus: "Verified by AI", refInfo: "Struk #OD-1102" },
-    { id: 6, date: "19 Feb 2024, 12:00", type: "in", amount: 1500000, title: "Pesanan Katering Besar", category: "Paket Katering", source: "Pesanan Online", refInfo: "Nota #TRX-00910" },
-  ];
 
   // --- LOGIKA UNTUK GENERATE OPSI BULAN DAN TAHUN SECARA DINAMIS ---
   const generateMonthOptions = () => {
@@ -44,7 +34,7 @@ const History = () => {
   const monthOptions = generateMonthOptions();
 
   // Logika Pemfilteran Data Berlapis (Tipe + Bulan/Tahun + Pencarian)
-  const filteredData = dummyHistory.filter(item => {
+  const filteredData = transactions.filter(item => {
     const matchesType = filterType === 'all' || item.type === filterType;
     
     // Cocokkan teks drop-down (contoh: "Okt 2023") dengan string tanggal item (contoh: "24 Okt 2023, 14:20")

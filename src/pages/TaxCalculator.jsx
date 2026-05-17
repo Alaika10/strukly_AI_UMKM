@@ -1,22 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const TaxCalculator = () => {
-  // State untuk menyimpan nominal omset (default: 50.000.000)
+  // State untuk menyimpan nominal omset
   const [omset, setOmset] = useState(50000000);
+  const [estimatedTax, setEstimatedTax] = useState(250000);
+  const [loading, setLoading] = useState(false);
 
   // Fungsi untuk memformat angka menjadi format ribuan (Rupiah)
   const formatRupiah = (number) => {
     return new Intl.NumberFormat("id-ID").format(number);
   };
 
-  // Fungsi untuk menangani perubahan input (menghapus huruf/titik agar bisa dihitung)
+  // Fungsi untuk menangani perubahan input
   const handleOmsetChange = (e) => {
-    const rawValue = e.target.value.replace(/\D/g, ''); // Hanya ambil angka
+    const rawValue = e.target.value.replace(/\D/g, '');
     setOmset(Number(rawValue));
   };
 
-  // Kalkulasi pajak secara otomatis (0.5% dari Omset)
-  const estimasiPajak = omset * 0.005;
+  // Panggil API hitung pajak di backend dengan debounce 500ms
+  useEffect(() => {
+    const fetchTaxCalculation = async () => {
+      if (omset <= 0) {
+        setEstimatedTax(0);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const query = `?omset=${omset}`;
+        const data = await api.dashboard.getTax(query);
+        if (data && data.estimated_tax !== undefined) {
+          setEstimatedTax(data.estimated_tax);
+        } else {
+          setEstimatedTax(omset * 0.005);
+        }
+      } catch (err) {
+        console.error("Gagal mendapatkan estimasi pajak dari backend:", err);
+        // Fallback jika API gagal
+        setEstimatedTax(omset * 0.005);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchTaxCalculation();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [omset]);
 
   // Data riwayat (dummy)
   const taxHistory = [
@@ -49,17 +82,20 @@ const TaxCalculator = () => {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <span className="text-on-surface-variant font-bold text-2xl">Rp</span>
               </div>
-              {/* Input Real-time */}
               <input 
                 id="omset" 
                 type="text" 
                 value={omset === 0 ? '' : formatRupiah(omset)}
                 onChange={handleOmsetChange}
                 placeholder="0" 
-                className="block w-full pl-16 pr-12 py-5 bg-surface-container-highest border-none rounded-lg text-3xl font-extrabold text-on-surface focus:ring-4 focus:ring-primary/20 transition-all outline-none" 
+                className="block w-full pl-16 pr-12 py-5 bg-surface-container-highest border-none rounded-lg text-3xl font-extrabold text-on-surface focus:ring-4 focus:ring-primary/20 transition-all outline-none animate-pulse-slow" 
               />
               <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-primary-container">edit</span>
+                {loading ? (
+                  <span className="material-symbols-outlined text-primary animate-spin">sync</span>
+                ) : (
+                  <span className="material-symbols-outlined text-primary-container">edit</span>
+                )}
               </div>
             </div>
             <p className="mt-4 text-sm text-on-surface-variant/80 italic">
@@ -75,16 +111,11 @@ const TaxCalculator = () => {
                 <div className="flex items-baseline gap-2 text-white">
                   <span className="text-2xl font-bold opacity-80">Rp</span>
                   <span className="text-5xl font-extrabold tracking-tighter">
-                    {formatRupiah(estimasiPajak)}
+                    {formatRupiah(estimatedTax)}
                   </span>
                 </div>
               </div>
-              <button className="bg-white text-primary px-8 py-4 rounded-lg font-bold text-sm shadow-lg hover:bg-surface-container-low transition-all active:scale-95 flex items-center gap-2 h-fit">
-                <span className="material-symbols-outlined text-lg">receipt_long</span>
-                Catat Pengeluaran
-              </button>
             </div>
-            {/* Abstract decorative glow */}
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-secondary-fixed-dim/20 rounded-full blur-3xl z-0"></div>
           </div>
         </div>
@@ -118,16 +149,6 @@ const TaxCalculator = () => {
               </div>
             </div>
           </div>
-
-          {/* Help Widget */}
-          <div className="bg-tertiary-fixed text-on-tertiary-fixed p-6 rounded-xl flex items-start gap-4">
-            <span className="material-symbols-outlined text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
-            <div>
-              <h5 className="font-bold text-sm">Butuh bantuan lapor?</h5>
-              <p className="text-xs opacity-80 mt-1">Tim Precision siap membantu sinkronisasi data Anda ke DJP Online secara otomatis.</p>
-              <a className="inline-block mt-3 text-xs font-bold underline decoration-2 underline-offset-4" href="#">Pelajari Selengkapnya</a>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -135,14 +156,9 @@ const TaxCalculator = () => {
       <section className="mt-16 space-y-6">
         <div className="flex items-end justify-between px-2">
           <h4 className="text-2xl font-extrabold tracking-tight">Riwayat Catatan Pajak</h4>
-          <button className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
-            Lihat Laporan Tahunan
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Mapping History Data */}
           {taxHistory.map((item) => (
             <div key={item.id} className="bg-surface-container-lowest p-6 rounded-xl flex items-center justify-between group hover:bg-surface-container-low transition-colors duration-200 cursor-pointer border border-outline-variant/10">
               <div className="flex items-center gap-4">

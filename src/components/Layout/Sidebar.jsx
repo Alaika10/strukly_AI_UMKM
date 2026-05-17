@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile }) => {
+const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile, currentUser }) => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const menuItems = [
@@ -11,6 +11,11 @@ const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile }) => {
     { icon: 'calculate', label: 'Hitung Pajak', path: '/tax' },
     { icon: 'history', label: 'Riwayat', path: '/history' },
   ];
+
+  // Load profile dari localStorage
+  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const businessName = currentUser?.business_name || currentUser?.name || savedUser.business_name || savedUser.name || 'Warung Berkah';
+  const email = currentUser?.email || savedUser.email || 'pemilik@bisnis.id';
 
   return (
     <>
@@ -23,29 +28,24 @@ const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile }) => {
       />
 
       {/* --- SIDEBAR CONTAINER --- */}
-      {/* Menghapus py-6 dan pt-20 agar elemen paling atas bisa sejajar murni dengan Navbar */}
       <aside className={`h-screen w-64 fixed left-0 top-0 z-50 bg-slate-50 dark:bg-slate-950 flex flex-col border-r border-outline-variant/10 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         
         {/* --- HEADER SIDEBAR (Logo) --- */}
-        {/* Menggunakan h-16 agar sejajar persis horizontal dengan Navbar atas */}
         <div className="h-16 flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-3">
-            {/* Ikon Baru: Struk/Receipt */}
             <div className="w-9 h-9 bg-[#003d9b] rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-blue-900/20">
               <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 receipt_long
               </span>
             </div>
-            {/* Nama Aplikasi Baru */}
             <div className="flex flex-col justify-center">
               <h2 className="text-xl font-black text-[#003d9b] leading-none tracking-tight">Strukly</h2>
               <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-500 mt-1">For UMKM</p>
             </div>
           </div>
           
-          {/* Tombol Silang dipindah sejajar dengan Logo (Hanya di Mobile) */}
           <button 
             onClick={onCloseMobile}
             className="md:hidden material-symbols-outlined text-slate-400 hover:text-slate-800 transition-colors"
@@ -81,6 +81,21 @@ const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile }) => {
         
         {/* Spacer untuk mendorong menu bawah ke paling bawah layar */}
         <div className="flex-grow"></div>
+
+        {/* Dynamic Business Profile Card */}
+        <div className="px-4 py-3 mb-2 mx-4 bg-surface-container-low dark:bg-slate-900 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
+          <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+            <img 
+              alt="Profil Bisnis" 
+              className="w-full h-full object-cover" 
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(businessName)}&background=dae2ff&color=003d9b`} 
+            />
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{businessName}</p>
+            <p className="text-[10px] text-slate-500 truncate">{email}</p>
+          </div>
+        </div>
         
         {/* --- Bagian Menu Bawah --- */}
         <div className="px-4 pb-4">
@@ -122,7 +137,6 @@ const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile }) => {
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           
-          {/* Latar Belakang (Klik untuk menutup modal) */}
           <div 
             className="absolute inset-0" 
             onClick={() => setIsLogoutModalOpen(false)}

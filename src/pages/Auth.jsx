@@ -1,24 +1,62 @@
 import { useState } from 'react';
+import { api } from '../services/api';
 
 const Auth = ({ onLogin }) => {
-  // State untuk berpindah antara tampilan Login dan Register
   const [isLoginView, setIsLoginView] = useState(true);
-  
-  // State untuk data form (dummy)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Fungsi simulasi submit form
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Di sini untuk memasukkan logika API (fetch/axios) oleh mas yaya
-    if (email && password) {
-      onLogin();
-    } else {
-      alert("Mohon isi email dan password terlebih dahulu untuk simulasi.");
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      if (isLoginView) {
+        // Melakukan login
+        const response = await api.auth.login(email, password);
+        if (response.token && response.user) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('user', JSON.stringify(response.user));
+          onLogin(response.user);
+        }
+      } else {
+        // Melakukan registrasi (menggunakan nama bisnis sebagai nama user)
+        const response = await api.auth.register(businessName || 'MSME User', email, password);
+        if (response.token && response.user) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('user', JSON.stringify(response.user));
+          onLogin(response.user);
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const targetEmail = prompt("Masukkan email Anda untuk mereset kata sandi:");
+    if (!targetEmail) return;
+    const newPassword = prompt("Masukkan kata sandi baru Anda:");
+    if (!newPassword) return;
+    
+    setLoading(true);
+    try {
+      const res = await api.auth.forgotPassword(targetEmail, newPassword);
+      alert(res.message || "Password berhasil diubah!");
+    } catch (err) {
+      alert(err.message || "Gagal mengubah password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen flex text-on-surface bg-surface">
@@ -49,6 +87,12 @@ const Auth = ({ onLogin }) => {
               : 'Daftarkan bisnis Anda dan nikmati kemudahan manajemen keuangan otomatis.'}
           </p>
 
+          {errorMsg && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-semibold mb-6">
+              {errorMsg}
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
@@ -77,7 +121,7 @@ const Auth = ({ onLogin }) => {
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Kata Sandi</label>
                 {isLoginView && (
-                  <a href="#" className="text-xs font-bold text-primary hover:underline">Lupa Sandi?</a>
+                  <button onClick={handleForgotPassword} className="text-xs font-bold text-primary hover:underline bg-transparent border-none cursor-pointer">Lupa Sandi?</button>
                 )}
               </div>
               <input 
@@ -88,8 +132,12 @@ const Auth = ({ onLogin }) => {
               />
             </div>
 
-            <button type="submit" className="w-full py-4 bg-primary text-on-primary font-bold rounded-xl hover:bg-primary-container transition-colors shadow-lg shadow-primary/20 mt-4 active:scale-[0.98]">
-              {isLoginView ? 'Masuk ke Dashboard' : 'Daftar Sekarang'}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-4 bg-primary text-on-primary font-bold rounded-xl hover:bg-primary-container transition-colors shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Memproses...' : (isLoginView ? 'Masuk ke Dashboard' : 'Daftar Sekarang')}
             </button>
           </form>
 
