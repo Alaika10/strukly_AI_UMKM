@@ -28,7 +28,11 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
   const displayName = savedUser.business_name || savedUser.name || 'Warung Berkah';
 
   // State Dashboard & AI
-  const [summary, setSummary] = useState({ total_income: 12450000, total_expense: 4210000, balance: 8240000 });
+  const [summary, setSummary] = useState({
+      total_income: 0,
+      total_expense: 0,
+      balance: 0,
+  });
   const [aiInsight, setAiInsight] = useState('Jangan lupa catat pesanan online segera setelah selesai agar stok bahan baku tetap akurat!');
   const [loadingSummary, setLoadingSummary] = useState(false);
 
@@ -50,29 +54,43 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
   const fileInputRef = useRef(null);
 
   // --- LOGIKA KALKULATOR PAJAK ---
-  const [omset, setOmset] = useState(50000000);
+  const [omset, setOmset] = useState(0);
 
-  const fetchDashboardData = async () => {
-    setLoadingSummary(true);
-    try {
-      const sumData = await api.dashboard.getSummary();
-      if (sumData && sumData.total_income !== undefined) {
-        setSummary(sumData);
-      }
-      
-      // Ambil AI Insight
-      const insightRes = await api.dashboard.getInsight();
-      if (insightRes && insightRes.insight) {
-        setAiInsight(insightRes.insight);
-      } else if (insightRes && typeof insightRes === 'string') {
-        setAiInsight(insightRes);
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data dashboard:", err);
-    } finally {
-      setLoadingSummary(false);
-    }
-  };
+ const fetchDashboardData = async () => {
+     setLoadingSummary(true);
+
+     try {
+         const sumData = await api.dashboard.getSummary();
+
+         setSummary({
+             total_income: Number(sumData?.total_income) || 0,
+             total_expense: Number(sumData?.total_expense) || 0,
+             balance: Number(sumData?.balance) || 0,
+         });
+
+         const insightRes = await api.dashboard.getInsight();
+
+         if (typeof insightRes === "string") {
+             setAiInsight(insightRes);
+         } else if (insightRes?.insight) {
+             if (typeof insightRes.insight === "string") {
+                 setAiInsight(insightRes.insight);
+             } else if (insightRes.insight.message) {
+                 setAiInsight(insightRes.insight.message);
+             } else {
+                 setAiInsight("Belum ada insight AI tersedia saat ini.");
+             }
+         } else if (insightRes?.message) {
+             setAiInsight(insightRes.message);
+         } else {
+             setAiInsight("Belum ada insight AI tersedia saat ini.");
+         }
+     } catch (err) {
+         console.error("Gagal mengambil data dashboard:", err);
+     } finally {
+         setLoadingSummary(false);
+     }
+ };
 
   useEffect(() => {
     fetchDashboardData();

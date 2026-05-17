@@ -26,11 +26,9 @@ const Auth = ({ onLogin }) => {
       } else {
         // Melakukan registrasi (menggunakan nama bisnis sebagai nama user)
         const response = await api.auth.register(businessName || 'MSME User', email, password);
-        if (response.token && response.user) {
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user));
-          onLogin(response.user);
-        }
+        alert('Registrasi berhasil! Silakan masuk dengan email dan kata sandi Anda.');
+        setIsLoginView(true);
+        setPassword('');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Terjadi kesalahan. Silakan coba lagi.');
