@@ -2,7 +2,7 @@ import { calculateTax } from "../models/taxModel.js";
 
 export const getTax = async (req, res) => {
     try {
-        const userId = req.query.user_id;
+        const userId = req.user?.id || req.query.user_id;
 
         const result = await calculateTax(userId);
 

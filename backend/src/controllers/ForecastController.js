@@ -4,7 +4,7 @@ import { calculateForecast } from "../service/ForecastService.js";
 
 export const forecast = async (req, res) => {
     try {
-        const userId = req.query.user_id;
+        const userId = req.user?.id || req.query.user_id;
 
         const incomeData = await getDailyIncome(userId);
         const expenseData = await getDailyExpense(userId);

@@ -3,8 +3,8 @@ import pool from "../config/db.js";
 export const createTransaction = async (data) => {
     const query = `
     INSERT INTO transactions 
-    (user_id, category_id, amount, merchant, transaction_date, source, type)
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
+    (user_id, category_id, amount, merchant, transaction_date, source, type, confidence, need_review, raw_text, cleaned_text, items)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *;
   `;
 
@@ -16,6 +16,11 @@ export const createTransaction = async (data) => {
         data.transaction_date,
         data.source,
         data.type,
+        data.confidence !== undefined && data.confidence !== null ? parseFloat(data.confidence) : null,
+        data.need_review !== undefined && data.need_review !== null ? !!data.need_review : false,
+        data.raw_text || null,
+        data.cleaned_text || null,
+        data.items ? (typeof data.items === "string" ? data.items : JSON.stringify(data.items)) : null,
     ];
 
     const result = await pool.query(query, values);

@@ -5,7 +5,7 @@ import pool from "../config/db.js";
 
 export const insight = async (req, res) => {
     try {
-        const userId = req.query.user_id;
+        const userId = req.user?.id || req.query.user_id;
 
         // current profit
         const current = await pool.query(

@@ -17,7 +17,8 @@ export const getProfile = async (req, res) => {
         }
 
         // Jangan kirim password
-        const { password, ...userWithoutPassword } = user;
+        const userWithoutPassword = { ...user };
+        delete userWithoutPassword.password;
         res.json(userWithoutPassword);
     } catch (err) {
         res.status(500).json({ error: err.message });
