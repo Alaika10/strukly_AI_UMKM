@@ -87,14 +87,20 @@ export const createFromOCR = async (req, res) => {
 
         const merchant = ocrResult.merchant && ocrResult.merchant !== "Tidak ditemukan" ? ocrResult.merchant : parsed.merchant;
         const transaction_date = ocrResult.date && ocrResult.date !== "Tidak ditemukan" ? ocrResult.date : parsed.date;
-        const categoryName = ocrResult.classes && ocrResult.classes !== "Tidak ditemukan" ? ocrResult.classes : mapCategory(rawText);
+        const categoryInput = ocrResult.classes && ocrResult.classes !== "Tidak ditemukan" ? ocrResult.classes : mapCategory(rawText);
         const items = ocrResult.items || [];
 
-        const category = await getCategoryByName(categoryName);
+        let categoryId = 1;
+        if (!isNaN(categoryInput) && typeof categoryInput !== "boolean") {
+            categoryId = parseInt(categoryInput);
+        } else {
+            const category = await getCategoryByName(categoryInput);
+            categoryId = category?.id || 1;
+        }
 
         const mappedData = {
             user_id: req.user.id,
-            category_id: category?.id || 1,
+            category_id: categoryId,
             amount: amount || 0,
             merchant: merchant || "Unknown",
             transaction_date: transaction_date || new Date().toISOString().split("T")[0],
@@ -115,7 +121,7 @@ export const createFromOCR = async (req, res) => {
             ...result,
             transactionId: result?.id,
             raw_text: rawText,
-            mapped_category: categoryName,
+            mapped_category: categoryInput,
             items: items,
         });
     } catch (err) {

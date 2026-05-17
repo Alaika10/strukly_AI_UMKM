@@ -2,7 +2,7 @@ import axios from "axios";
 import FormData from "form-data";
 
 const OCR_SERVICE_URL =
-    process.env.OCR_SERVICE_URL || "https://sicheater99-ocr.hf.space/scan-ocr/";
+    process.env.OCR_SERVICE_URL || "https://struklyai-ocr.hf.space/scan-ocr/";
 
 export const sendToOCR = async (fileBuffer, filename) => {
     try {
