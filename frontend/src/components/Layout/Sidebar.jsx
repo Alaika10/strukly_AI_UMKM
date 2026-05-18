@@ -81,44 +81,10 @@ const Sidebar = ({ onLogout, isMobileOpen, onCloseMobile, currentUser }) => {
         
         {/* Spacer untuk mendorong menu bawah ke paling bawah layar */}
         <div className="flex-grow"></div>
-
-        {/* Dynamic Business Profile Card */}
-        <div className="px-4 py-3 mb-2 mx-4 bg-surface-container-low dark:bg-slate-900 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
-          <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-            <img 
-              alt="Profil Bisnis" 
-              className="w-full h-full object-cover" 
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(businessName)}&background=dae2ff&color=003d9b`} 
-            />
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{businessName}</p>
-            <p className="text-[10px] text-slate-500 truncate">{email}</p>
-          </div>
-        </div>
         
         {/* --- Bagian Menu Bawah --- */}
         <div className="px-4 pb-4">
-          <div className="flex flex-col space-y-1 border-t border-outline-variant/10 pt-4">
-            
-            <NavLink 
-              to="/settings"
-              onClick={onCloseMobile}
-              className={({ isActive }) => `flex items-center gap-3 py-3 px-4 rounded-lg transition-all duration-200 ease-out ${
-                isActive 
-                ? 'text-blue-700 dark:text-blue-400 font-bold border-r-4 border-blue-700 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10' 
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900'
-              }`}
-            >
-              {({ isActive }) => (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "" }}>
-                    settings
-                  </span>
-                  <span className="font-body text-sm font-medium tracking-wide">Pengaturan</span>
-                </>
-              )}
-            </NavLink>
+          <div className="flex flex-col space-y-1 pt-4">
 
             {/* Tombol Keluar memicu Modal */}
             <button 

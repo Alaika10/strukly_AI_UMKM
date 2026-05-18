@@ -19,6 +19,7 @@ const Navbar = ({ onMenuClick, currentUser }) => {
   const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const businessName = currentUser?.business_name || currentUser?.name || savedUser.business_name || savedUser.name || 'Warung Berkah';
   const email = currentUser?.email || savedUser.email || 'pemilik@bisnis.id';
+  const logoUrl = currentUser?.logo_url || savedUser.logo_url;
 
   const loadNotificationsAndAlerts = async () => {
     try {
@@ -144,9 +145,19 @@ const Navbar = ({ onMenuClick, currentUser }) => {
                 </button>
               </div>
 
+              {/* Tombol Pengaturan */}
+              <div className="relative group cursor-pointer">
+                <Link 
+                  to="/settings"
+                  className="material-symbols-outlined p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-full relative flex items-center justify-center"
+                >
+                  settings
+                </Link>
+              </div>
+
             </div>
             
-            <div className="hidden sm:block h-8 w-[1px] bg-outline-variant/30"></div>
+            <div className="hidden sm:block h-8 w-[1px] bg-outline-variant/30 mx-2"></div>
             
             {/* --- MENU PROFIL --- */}
             <div className="relative" ref={profileRef}>
@@ -158,7 +169,7 @@ const Navbar = ({ onMenuClick, currentUser }) => {
                 <img 
                   alt="Profil Pengguna" 
                   className="w-full h-full object-cover" 
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(businessName)}&background=dae2ff&color=003d9b`} 
+                  src={logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName)}&background=dae2ff&color=003d9b`} 
                 />
               </div>
 
@@ -171,29 +182,7 @@ const Navbar = ({ onMenuClick, currentUser }) => {
                     <p className="text-xs text-slate-500 mt-0.5 truncate">{email}</p>
                   </div>
                   
-                  {/* List Menu Profil */}
-                  <div className="py-2">
-                    <Link 
-                      to="/settings"
-                      state={{ activeTab: 'profil' }}
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-xl text-slate-400">person</span>
-                      Profil Bisnis
-                    </Link>
-                    <Link 
-                      to="/settings"
-                      state={{ activeTab: 'akun' }}
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-xl text-slate-400">settings</span>
-                      Pengaturan Akun
-                    </Link>
-                  </div>
-                  
-                  <div className="border-t border-outline-variant/10 pt-2 pb-1">
+                  <div className="pt-2 pb-1">
                     <button 
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 px-5 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"

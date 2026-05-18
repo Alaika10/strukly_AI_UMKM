@@ -26,9 +26,10 @@ const CATEGORIES = {
     9: "Pajak",
 };
 
-const formatTransactionDate = (dateStr) => {
+const formatTransactionDate = (dateStr, createdDateStr) => {
     try {
         const d = new Date(dateStr);
+        const c = createdDateStr ? new Date(createdDateStr) : d;
 
         if (isNaN(d.getTime())) return dateStr;
 
@@ -51,10 +52,10 @@ const formatTransactionDate = (dateStr) => {
         const month = months[d.getMonth()];
         const year = d.getFullYear();
 
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const hours = String(c.getHours()).padStart(2, "0");
+        const minutes = String(c.getMinutes()).padStart(2, "0");
 
-        return `${day} ${month} ${year}, ${hours}:${minutes}`;
+        return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
     } catch (e) {
         return dateStr;
     }
@@ -104,7 +105,8 @@ function App() {
                 type: t.type === "income" ? "in" : "out",
 
                 date: formatTransactionDate(
-                    t.transaction_date || t.createdAt || new Date(),
+                    t.transaction_date || t.createdAt || t.created_at || new Date(),
+                    t.createdAt || t.created_at
                 ),
 
                 amount: Number(t.amount),
@@ -119,8 +121,8 @@ function App() {
 
                 aiStatus:
                     t.type === "expense"
-                        ? t.is_verified_by_ai
-                            ? "Verified by AI"
+                        ? t.source === "ocr"
+                            ? "Scan OCR AI"
                             : "Manual Input"
                         : undefined,
 
@@ -190,6 +192,7 @@ function App() {
                         path="/input-income"
                         element={
                             <InputIncome
+                                transactions={transactions}
                                 refreshTransactions={loadTransactions}
                             />
                         }
@@ -199,6 +202,7 @@ function App() {
                         path="/input-expense"
                         element={
                             <InputExpense
+                                transactions={transactions}
                                 refreshTransactions={loadTransactions}
                             />
                         }

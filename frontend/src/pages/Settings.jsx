@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect, useRef } from 'react'; 
 import { useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 
@@ -12,6 +12,18 @@ const Settings = ({ currentUser, onUpdateUser }) => {
   const [businessName, setBusinessName] = useState(currentUser?.business_name || currentUser?.name || 'Kopi Senja Utama');
   const [category, setCategory] = useState(currentUser?.business_category || 'f&b');
   const [logoUrl, setLogoUrl] = useState(currentUser?.logo_url || '');
+  const logoInputRef = useRef(null);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // State untuk form Akun & Keamanan
   const [currentPassword, setCurrentPassword] = useState('');
@@ -201,10 +213,20 @@ const Settings = ({ currentUser, onUpdateUser }) => {
               <div className="md:col-span-4">
                 <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">Logo Bisnis</h3>
                 <div className="flex flex-col items-center md:items-start">
-                  <div className="w-40 h-40 rounded-3xl bg-surface-container border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 group hover:border-primary transition-colors cursor-pointer mb-6">
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-4xl">add_photo_alternate</span>
-                    <span className="text-xs font-bold text-outline group-hover:text-primary transition-colors">Unggah Logo</span>
+                  <div 
+                    onClick={() => logoInputRef.current?.click()}
+                    className="w-40 h-40 rounded-3xl bg-surface-container border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 group hover:border-primary transition-colors cursor-pointer mb-6 overflow-hidden relative"
+                  >
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-4xl">add_photo_alternate</span>
+                        <span className="text-xs font-bold text-outline group-hover:text-primary transition-colors">Unggah Logo</span>
+                      </>
+                    )}
                   </div>
+                  <input type="file" accept="image/*" ref={logoInputRef} onChange={handleLogoUpload} className="hidden" />
                   <p className="text-xs text-on-surface-variant leading-relaxed text-center md:text-left">
                     Gunakan file JPG, PNG, atau SVG.<br />Maksimal ukuran file 2MB.
                   </p>

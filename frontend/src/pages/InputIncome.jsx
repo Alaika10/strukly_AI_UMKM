@@ -9,7 +9,7 @@ const INCOME_CATEGORIES = {
   'Paket Katering': 4
 };
 
-const InputIncome = ({ refreshTransactions }) => {
+const InputIncome = ({ transactions = [], refreshTransactions }) => {
   const navigate = useNavigate();
   const [source, setSource] = useState('langsung');
   const [amount, setAmount] = useState('');
@@ -62,13 +62,6 @@ const InputIncome = ({ refreshTransactions }) => {
           </div>
           <div className="hidden lg:block">
             <div className="bg-surface-container-low px-6 py-4 rounded-xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-on-surface">{displayName}</p>
-                <p className="text-xs text-on-surface-variant">Pemilik Usaha</p>
-              </div>
             </div>
           </div>
         </div>
@@ -86,11 +79,17 @@ const InputIncome = ({ refreshTransactions }) => {
                 <span className="absolute left-6 text-3xl font-bold text-primary opacity-50">Rp</span>
                 <input 
                   required
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amount ? new Intl.NumberFormat("id-ID").format(amount) : ''}
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\./g, '');
+                    if (rawValue === '' || (Number(rawValue) >= 0 && !isNaN(rawValue))) {
+                      setAmount(rawValue);
+                    }
+                  }}
                   className="w-full bg-surface-container-highest border-none rounded-xl py-8 pl-20 pr-8 text-5xl font-extrabold text-on-surface focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-surface-variant animate-pulse-slow outline-none" 
                   placeholder="0" 
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                 />
               </div>
             </div>
@@ -166,6 +165,59 @@ const InputIncome = ({ refreshTransactions }) => {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Recent History Section */}
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-on-surface">Riwayat Pemasukan Terbaru</h3>
+          <Link to="/history" state={{ filterType: 'in' }} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+            Lihat Semua <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+        <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Waktu</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Sumber</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Kategori</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Nominal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {transactions.filter(t => t.type === 'in').slice(0, 3).map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-bold text-slate-900 block">{item.date.split(',')[1]?.trim() || item.date.split(',')[0]}</span>
+                      <span className="text-xs text-slate-500">{item.date.split(',')[0]}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[14px]">storefront</span>
+                        {item.title || item.source}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-medium text-slate-700">{item.category}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-extrabold text-emerald-600">
+                      Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
+                    </td>
+                  </tr>
+                ))}
+                {transactions.filter(t => t.type === 'in').length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-medium">
+                      Belum ada riwayat pemasukan.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

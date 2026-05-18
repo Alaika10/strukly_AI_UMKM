@@ -9,7 +9,7 @@ const EXPENSE_CATEGORIES_MAPPING = {
   'Pajak': 9
 };
 
-const InputExpense = ({ refreshTransactions }) => {
+const InputExpense = ({ transactions = [], refreshTransactions }) => {
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -209,11 +209,17 @@ const InputExpense = ({ refreshTransactions }) => {
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Nominal (IDR)</label>
                   <input 
                     required
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    value={amount ? new Intl.NumberFormat("id-ID").format(amount) : ''}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/\./g, '');
+                      if (rawValue === '' || (Number(rawValue) >= 0 && !isNaN(rawValue))) {
+                        setAmount(rawValue);
+                      }
+                    }}
                     className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none" 
                     placeholder="0" 
-                    type="number" 
+                    type="text" 
+                    inputMode="numeric"
                   />
                 </div>
                 <div>
@@ -251,6 +257,65 @@ const InputExpense = ({ refreshTransactions }) => {
                 {loadingManual ? 'Menyimpan...' : 'Simpan Pengeluaran'}
               </button>
             </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent History Section */}
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-on-surface">Riwayat Pengeluaran Terbaru</h3>
+          <Link to="/history" state={{ filterType: 'out' }} className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+            Lihat Semua <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+        <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Waktu</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Vendor</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Kategori</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Status AI</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Nominal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {transactions.filter(t => t.type === 'out').slice(0, 3).map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-bold text-slate-900 block">{item.date.split(',')[1]?.trim() || item.date.split(',')[0]}</span>
+                      <span className="text-xs text-slate-500">{item.date.split(',')[0]}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-slate-900 block">{item.title || item.vendor}</span>
+                      <span className="text-xs text-slate-500">{item.refId}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md inline-block">{item.category}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1 w-fit ${item.aiStatus?.includes('AI') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                        {item.aiStatus?.includes('AI') && <span className="material-symbols-outlined text-[12px]">auto_awesome</span>}
+                        {!item.aiStatus?.includes('AI') && <span className="material-symbols-outlined text-[12px]">history</span>}
+                        {item.aiStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-extrabold text-red-600">
+                      Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
+                    </td>
+                  </tr>
+                ))}
+                {transactions.filter(t => t.type === 'out').length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-slate-400 font-medium">
+                      Belum ada riwayat pengeluaran.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

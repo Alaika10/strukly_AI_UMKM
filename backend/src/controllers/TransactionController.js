@@ -69,6 +69,7 @@ export const createFromOCR = async (req, res) => {
             req.file.buffer,
             req.file.originalname,
         );
+        console.log("res ocr :", ocrResult)
 
         if (!ocrResult || ocrResult.sukses === false) {
             return res.status(400).json({ error: ocrResult?.pesan || "Gagal memproses gambar" });
