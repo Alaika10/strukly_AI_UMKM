@@ -15,6 +15,7 @@ const SECRET = process.env.ACCESS_TOKEN_KEY || "fallback_secret";
 
 export const register = async (req, res) => {
     try {
+        console.log("Register request body:", req.body); // Debug log
         const { name, email, password } = req.body;
 
         if (!name || !email || !password) {

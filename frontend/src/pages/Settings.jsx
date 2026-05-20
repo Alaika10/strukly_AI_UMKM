@@ -469,10 +469,10 @@ const Settings = ({ currentUser, onUpdateUser }) => {
             </p>
           </div>
           <div className="flex justify-start">
-            <button className="bg-primary text-on-primary px-6 py-3.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all">
+            <a href="https://wa.me/6285172485633" target="_blank" rel="noopener noreferrer" className="bg-primary text-on-primary px-6 py-3.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all w-fit">
               Hubungi Support
               <span className="material-symbols-outlined text-lg">chat_bubble</span>
-            </button>
+            </a>
           </div>
         </div>
       </div>
