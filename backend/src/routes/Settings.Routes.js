@@ -5,7 +5,7 @@ import {
     updateSecurityController,
     updateNotificationsController,
 } from "../controllers/SettingsController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
 
 const router = express.Router();
 

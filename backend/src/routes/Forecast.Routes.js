@@ -1,6 +1,6 @@
 import express from "express";
 import { forecast } from "../controllers/ForecastController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
 
 const router = express.Router();
 
