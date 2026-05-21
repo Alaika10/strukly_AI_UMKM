@@ -14,8 +14,8 @@ const poolConfig = process.env.DATABASE_URL
           port: process.env.PGPORT,
       };
 
-// Jika ENV adalah production (misal di Railway), biasanya kita perlu mengaktifkan SSL
-if (process.env.NODE_ENV === "production") {
+// Jika ENV adalah production dan bukan koneksi internal Railway, kita aktifkan SSL
+if (process.env.NODE_ENV === "production" && process.env.DATABASE_URL && !process.env.DATABASE_URL.includes(".railway.internal")) {
     poolConfig.ssl = { rejectUnauthorized: false };
 }
 
