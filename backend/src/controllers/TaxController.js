@@ -1,4 +1,4 @@
-import { calculateTax } from "../models/taxModel.js";
+import { calculateTax } from "../models/TaxModel.js";
 
 export const getTax = async (req, res) => {
     try {
