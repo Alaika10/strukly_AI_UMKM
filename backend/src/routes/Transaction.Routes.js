@@ -8,7 +8,7 @@ import {
     remove,
 } from "../controllers/TransactionController.js";
 
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
 
 const router = express.Router();
 
