@@ -288,10 +288,13 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
                   <div className="relative flex items-center">
                     <span className="absolute left-0 text-3xl font-bold text-slate-400">Rp</span>
                     <input 
-                      type="number" 
+                      type="text" 
                       required
-                      value={incAmount}
-                      onChange={(e) => setIncAmount(e.target.value)}
+                      value={incAmount === '' ? '' : formatRupiah(Number(incAmount))}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, '');
+                        setIncAmount(rawValue);
+                      }}
                       placeholder="0" 
                       className="w-full bg-transparent border-none py-2 pl-14 pr-4 text-5xl font-black text-slate-800 focus:ring-0 outline-none" 
                     />
@@ -415,10 +418,13 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Nominal (IDR)</label>
                   <input 
-                    type="number" 
+                    type="text" 
                     required
-                    value={expAmount}
-                    onChange={(e) => setExpAmount(e.target.value)}
+                    value={expAmount === '' ? '' : formatRupiah(Number(expAmount))}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/\D/g, '');
+                      setExpAmount(rawValue);
+                    }}
                     placeholder="0" 
                     className="w-full bg-slate-50 border-none rounded-xl p-4 text-sm font-semibold focus:ring-2 focus:ring-[#003d9b]/20 outline-none" 
                   />

@@ -64,14 +64,14 @@ const Auth = ({ onLogin }) => {
           
           {/* Logo / Brand */}
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 bg-primary-container rounded-xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-on-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                account_balance_wallet
+            <div className="w-12 h-12 bg-[#003d9b] rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-blue-900/20">
+              <span className="material-symbols-outlined text-white text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                receipt_long
               </span>
             </div>
-            <div>
-              <h2 className="text-xl font-black text-primary leading-none">Precision MSME</h2>
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mt-1">Financial Architect</p>
+            <div className="flex flex-col justify-center">
+              <h2 className="text-2xl font-black text-[#003d9b] leading-none tracking-tight">Strukly</h2>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mt-1">For UMKM</p>
             </div>
           </div>
 
