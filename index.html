@@ -43,11 +43,17 @@
                     <div style="color: white; font-weight: bold;">Total Belanja:</div>
                     <div id="totalValue" style="color: white; font-size: 1.1em; margin-bottom: 12px; margin-top: 2px;">-</div>
 
+                    <div style="color: white; font-weight: bold;">Daftar Item:</div>
+                    <pre id="itemsValue" style="color: white; font-size: 1em; margin-top: 2px; font-family: monospace;">-</pre>
+
                     <div style="color: white; font-weight: bold;">Kategori (Classes):</div>
                     <div id="classesValue" style="color: white; font-size: 1.1em; margin-bottom: 12px; margin-top: 2px;">-</div>
 
-                    <div style="color: white; font-weight: bold;">Daftar Item:</div>
-                    <pre id="itemsValue" style="color: white; font-size: 1em; margin-top: 2px; font-family: monospace;">-</pre>
+                    <div style="color: white; font-weight: bold;">Kategori:</div>
+                    <div id="classNameValue" style="color: white; font-size: 1.1em; margin-bottom: 12px; margin-top: 2px;">-</div>
+
+                    <div style="color: white; font-weight: bold;">Confidence:</div>
+                    <div id="confidence" style="color: white; font-size: 1.1em; margin-bottom: 12px; margin-top: 2px;">-</div>
 
                 </div>
             </div>
@@ -56,7 +62,7 @@
     </div>
 
     <script>
-        const FASTAPI = "https://sicheater99-ocr.hf.space/scan-ocr/"; 
+        const FASTAPI = "https://sicheater99-ocr-trial.hf.space/scan-ocr/"; 
 
     const inputGambar = document.getElementById('inputGambar');
         const previewGambar = document.getElementById('previewGambar');
@@ -70,6 +76,8 @@
         const totalValue = document.getElementById('totalValue');
         const classesValue = document.getElementById('classesValue');
         const itemsValue = document.getElementById('itemsValue');
+        const classNameValue = document.getElementById('classNameValue');
+        const confidence = document.getElementById('confidence');
 
         let intervalTimer;
         let waktuMulai;
@@ -154,6 +162,9 @@
             totalValue.innerText = "-";
             classesValue.innerText = "-";
             itemsValue.innerText = "-";
+            classNameValue.innerText = "-";
+            confidence,innerText = "-"
+
 
             waktuMulai = Date.now();
             intervalTimer = setInterval(() => {
@@ -213,6 +224,21 @@
                         itemsValue.innerText = "Tidak ditemukan";
                     }
 
+                    // 6. Kategori
+                    if (data.category_name) {
+                        classNameValue.innerText = data.category_name;
+                    } else {
+                        classNameValue.innerText = "Kategori Tidak ditemukan";
+                    }
+
+                    // 7. Confidence
+                    if (data.confidence) {
+                        confidence.innerText = data.confidence;
+                    } else {
+                        confidence.innerText = "Confidence Tidak ditemukan";
+                    }
+
+
                 } else {
                     teksOcr.innerText = "Terjadi Kesalahan di Backend:\n" + data.pesan;
                     merchantValue.innerText = "Error";
@@ -220,7 +246,7 @@
                     totalValue.innerText = "Error";
                     classesValue.innerText = "Error";
                     itemsValue.innerText = "Error";
-                }
+                }   
             } catch (error) {
                 clearInterval(intervalTimer);
                 teksOcr.innerText = "Gagal terhubung ke API.\nError: " + error.message;
