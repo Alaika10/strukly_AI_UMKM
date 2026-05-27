@@ -36,9 +36,21 @@ Tanggal transaksi hasil ekstraksi Regex berformat kaku DD-MM-YYYY. Bernilai null
 
 `classes` (Integer)
 
-Kode atau ID numerik yang mewakili kategori pengeluaran. Bernilai 0 atau null jika sistem gagal memetakan kelas.
+Kode atau ID numerik yang mewakili kategori pengeluaran. Bernilai None jika sistem gagal memetakan kelas.
 
-`category_id` (String)
+0 : 'ATK/Administrasi'
+
+1 : 'Fashion'
+
+2 : 'Kesehatan' 
+
+3 : 'Makanan & Bahan Makanan'
+
+4 : 'Minuman & Bahan Minuman' 
+
+5 : 'Perlengkapan Operasional'
+
+`category_name` (String)
 
 Nama label string dari kategori pengeluaran berdasarkan hasil klasifikasi. Bernilai null jika tidak ada kata kunci yang cocok.
 
@@ -55,4 +67,5 @@ Angka nominal bersih total belanja yang sudah dibersihkan dari simbol mata uang 
 Array yang berisi rincian daftar belanjaan. Bernilai [] atau null jika tabel belanja tidak ditemukan di dalam struk.
 
 `confidence` (float)
+
 Tingkat probabilitas model AI terhadap hasil prediksi kategori (skala 0.0 hingga 1.0). Bernilai 0.0 atau null jika prediksi gagal.
