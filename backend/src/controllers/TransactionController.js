@@ -64,7 +64,7 @@ export const createFromOCR = async (req, res) => {
             return res.status(400).json({ error: "File is required" });
         }
 
-        // 1. Kirim file ke FastAPI OCR (endpoint: https://struklyai-ocr.hf.space/scan-ocr/)
+        // 1. Kirim file ke FastAPI OCR (endpoint: https://sicheater99-ocr-trial.hf.space/scan-ocr/)
         const ocrResult = await sendToOCR(
             req.file.buffer,
             req.file.originalname,
