@@ -8,7 +8,6 @@ import {
 import { mapCategory } from "../utils/categoryMapper.js";
 import { getCategoryByName } from "../models/CategoryModel.js";
 import { sendToOCR } from "../service/OcrService.js";
-import { parseOCRText, parseItemsFromOCR } from "../utils/ocrParser.js";
 import { createNotification } from "../models/NotificationModel.js";
 
 
@@ -64,147 +63,134 @@ export const createFromOCR = async (req, res) => {
             return res.status(400).json({ error: "File is required" });
         }
 
-        // 1. Kirim file ke FastAPI OCR (endpoint: https://sicheater99-ocr-trial.hf.space/scan-ocr/)
-        const ocrResult = await sendToOCR(
-            req.file.buffer,
-            req.file.originalname,
-        );
-        console.log("res ocr :", ocrResult)
-
-        if (!ocrResult || ocrResult.sukses === false) {
-            return res.status(400).json({ error: ocrResult?.pesan || "Gagal memproses gambar" });
+        // 1. Kirim file ke FastAPI OCR (endpoint di env)
+        let ocrResult;
+        try {
+            ocrResult = await sendToOCR(
+                req.file.buffer,
+                req.file.originalname,
+            );
+        } catch (ocrError) {
+            console.error("AI Service Error:", ocrError);
+            return res.status(502).json({
+                error: "OCR service unavailable"
+            });
         }
 
-        // Defensive parsing in case ocrResult is a JSON-encoded string
-        let ocrData = ocrResult;
-        if (typeof ocrData === "string" && ocrData.trim().startsWith("{")) {
+        // 5. Logging OCR RESPONSE sebelum proses mapping
+        console.log("OCR RESPONSE:", ocrResult);
+
+        // Defensive check in case ocrResult is empty/null/undefined
+        if (!ocrResult) {
+            return res.status(502).json({
+                error: "OCR service unavailable"
+            });
+        }
+
+        // Parse ocrResult if it arrives as stringified JSON
+        if (typeof ocrResult === "string") {
             try {
-                ocrData = JSON.parse(ocrData);
-            } catch {
-                // Ignore parsing error
+                ocrResult = JSON.parse(ocrResult);
+            } catch (e) {
+                console.error("Failed to parse ocrResult string:", e);
+                return res.status(502).json({
+                    error: "OCR service unavailable"
+                });
             }
         }
 
-        // If the pipeline output is stored as a string inside 'classes' or 'category'
-        let aiPipelineResult = {};
-        const fieldsToCheck = [ocrData.classes, ocrData.category, ocrData.pipeline_output, ocrData.result];
-        for (const field of fieldsToCheck) {
-            if (typeof field === "string" && field.trim().startsWith("{")) {
-                try {
-                    aiPipelineResult = JSON.parse(field);
-                    break;
-                } catch {
-                    // Ignore parsing error
-                }
-            }
-        }
-
-        // Merge properties if nested pipeline result was successfully parsed
-        const finalOcr = {
-            ...ocrData,
-            ...aiPipelineResult
-        };
-
-        // Extract raw_text
-        const rawText = finalOcr.raw_text || finalOcr.ocr_mentah || "";
-        const parsedFallback = parseOCRText(rawText);
-
-        // Map amount from total_harga or total with fallback to regex parsing
-        let amountVal = finalOcr.total_harga !== undefined && finalOcr.total_harga !== null ? finalOcr.total_harga : finalOcr.total;
-        if (amountVal === undefined || amountVal === null) {
-            amountVal = parsedFallback.amount;
-        }
-
-        // Parse amount string if necessary
+        // 2. Mapping & Fallbacks
+        const merchant = ocrResult.merchant || "Unknown Merchant";
+        
+        const amountVal = ocrResult.total_belanja;
         let amount = 0;
-        if (typeof amountVal === "string") {
+        if (typeof amountVal === "number") {
+            amount = amountVal;
+        } else if (typeof amountVal === "string" && amountVal.trim() !== "") {
             const match = amountVal.match(/\d[\d.,]*/);
             amount = match ? parseInt(match[0].replace(/[.,]/g, "")) : 0;
-        } else if (typeof amountVal === "number") {
-            amount = amountVal;
         }
 
-        // 3. VALIDATION: amount wajib
+        // 6. Error Handling: Jika OCR berhasil tetapi amount kosong/0
         if (!amount || amount <= 0) {
-            return res.status(400).json({ error: "Amount is required and could not be parsed from receipt" });
+            return res.status(400).json({
+                error: "OCR result missing amount"
+            });
         }
 
-        // Extract merchant and transaction date
-        const merchant = finalOcr.merchant && finalOcr.merchant !== "Tidak ditemukan" ? finalOcr.merchant : (parsedFallback.merchant || "Unknown");
-        const transaction_date = finalOcr.date && finalOcr.date !== "Tidak ditemukan" ? finalOcr.date : (parsedFallback.date || new Date().toISOString().split("T")[0]);
-
-        // Clean and Map category
-        let categoryNameAI = finalOcr.category_name || finalOcr.category || finalOcr.classes || "Other";
-        if (typeof categoryNameAI === "string") {
-            categoryNameAI = categoryNameAI.replace(/[[\]'"\r\n]/g, "").trim();
+        // Confidence & need_review
+        let confidence = 0;
+        if (ocrResult.confidence !== undefined && ocrResult.confidence !== null) {
+            confidence = parseFloat(ocrResult.confidence);
+            if (isNaN(confidence)) {
+                confidence = 0;
+            }
         }
-        
-        // Map to standard DB category to prevent foreign key errors and preserve reporting consistency
+
+        // 3. Confidence Logic: need_review = confidence < 75
+        const need_review = confidence < 75;
+
+        // Items
+        const items = Array.isArray(ocrResult.items) ? ocrResult.items : [];
+
+        // Raw text
+        const rawText = ocrResult.raw_text || "";
+
+        // Category mapping
+        const categoryNameAI = ocrResult.category_name || "Other";
         const cleanCategoryName = mapCategory(categoryNameAI);
         const categoryRecord = await getCategoryByName(cleanCategoryName);
         const categoryId = categoryRecord?.id || 1;
         const finalCategoryName = cleanCategoryName;
 
-        // Parse items (ensure items is an array, fallback to regex items parser if empty)
-        let items = [];
-        if (Array.isArray(finalOcr.items)) {
-            items = finalOcr.items;
-        } else if (typeof finalOcr.items === "string") {
-            try {
-                const parsedItems = JSON.parse(finalOcr.items);
-                items = Array.isArray(parsedItems) ? parsedItems : [finalOcr.items];
-            } catch {
-                items = [finalOcr.items];
+        // Transaction Date parsing (support DD-MM-YYYY to YYYY-MM-DD)
+        let transaction_date = ocrResult.tanggal_transaksi;
+        if (transaction_date && typeof transaction_date === "string") {
+            const parts = transaction_date.split(/[-/]/);
+            if (parts.length === 3) {
+                if (parts[2].length === 4) { // Year is at the end (DD-MM-YYYY)
+                    transaction_date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                } else if (parts[0].length === 4) { // Year is at the front (YYYY-MM-DD)
+                    transaction_date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                }
             }
         }
-        
-        if (items.length === 0 && rawText) {
-            // Use local fallback item parsing
-            const fallbackItems = parseItemsFromOCR(rawText);
-            items = fallbackItems.map(item => item.name); // Extract item names
+        if (!transaction_date) {
+            transaction_date = new Date().toISOString().split("T")[0];
         }
 
-        // Extract confidence & calculate need_review
-        let confidence = null;
-        if (finalOcr.confidence !== undefined && finalOcr.confidence !== null) {
-            confidence = parseFloat(finalOcr.confidence);
-        }
-
-        // 3. VALIDATION: jika confidence < 0.75 maka need_review = true
-        let need_review = false;
-        if (confidence !== null) {
-            need_review = confidence < 0.75;
-        } else if (finalOcr.need_review !== undefined) {
-            need_review = !!finalOcr.need_review;
-        }
-
-        // 4. Save transaction with new DB fields: confidence, need_review, raw_text, cleaned_text, items
+        // 4. Save transaction to Database
         const mappedData = {
             user_id: req.user.id,
             category_id: categoryId,
             amount: amount,
             merchant: merchant,
             transaction_date: transaction_date,
-            source: "ocr", // standard source is "ocr" as per requirement
+            source: "ocr",
             type: "expense",
             confidence: confidence,
             need_review: need_review,
             raw_text: rawText,
-            cleaned_text: finalOcr.cleaned_text || null,
+            cleaned_text: ocrResult.cleaned_text || null,
             items: items,
         };
 
         const result = await createTransaction(mappedData);
 
         // Add Notification
-        await createNotification(
-            req.user.id,
-            "expense",
-            `Pengeluaran baru (Auto) tercatat: Rp ${Number(result.amount).toLocaleString()}`,
-        );
+        try {
+            await createNotification(
+                req.user.id,
+                "expense",
+                `Pengeluaran baru (Auto) tercatat: Rp ${Number(result.amount).toLocaleString()}`,
+            );
+        } catch (notifErr) {
+            console.error("Failed to create notification:", notifErr);
+            // Don't fail the response if notification fails
+        }
 
-        // 6. Response final backend matching the exact schema requirement:
-        res.json({
+        // Return final json with status 200
+        res.status(200).json({
             id: result?.id,
             merchant: result?.merchant || merchant,
             amount: Number(result?.amount || amount),
@@ -218,6 +204,7 @@ export const createFromOCR = async (req, res) => {
             type: result?.type || "expense",
         });
     } catch (err) {
+        console.error("createFromOCR overall failure:", err);
         res.status(500).json({ error: err.message });
     }
 };
