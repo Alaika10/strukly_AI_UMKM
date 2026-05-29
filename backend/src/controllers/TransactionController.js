@@ -102,7 +102,7 @@ export const createFromOCR = async (req, res) => {
         // 2. Mapping & Fallbacks
         const merchant = ocrResult.merchant || "Unknown Merchant";
         
-        const amountVal = ocrResult.total_belanja;
+        const amountVal = ocrResult.total !== undefined ? ocrResult.total : ocrResult.total_belanja;
         let amount = 0;
         if (typeof amountVal === "number") {
             amount = amountVal;
@@ -134,7 +134,7 @@ export const createFromOCR = async (req, res) => {
         const items = Array.isArray(ocrResult.items) ? ocrResult.items : [];
 
         // Raw text
-        const rawText = ocrResult.raw_text || "";
+        const rawText = ocrResult.ocr_mentah || ocrResult.raw_text || "";
 
         // Category mapping
         const categoryNameAI = ocrResult.category_name || "Other";
@@ -144,7 +144,7 @@ export const createFromOCR = async (req, res) => {
         const finalCategoryName = cleanCategoryName;
 
         // Transaction Date parsing (support DD-MM-YYYY to YYYY-MM-DD)
-        let transaction_date = ocrResult.tanggal_transaksi;
+        let transaction_date = ocrResult.date || ocrResult.tanggal_transaksi;
         if (transaction_date && typeof transaction_date === "string") {
             const parts = transaction_date.split(/[-/]/);
             if (parts.length === 3) {
