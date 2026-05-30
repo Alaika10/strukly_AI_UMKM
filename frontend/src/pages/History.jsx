@@ -229,7 +229,6 @@ const History = ({ transactions = [], refreshTransactions }) => {
             if (refreshTransactions) refreshTransactions();
           }}
         />
-      </div>
     </div>
   );
 };
