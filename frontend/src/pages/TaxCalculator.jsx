@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../services/api";
 
 const TaxCalculator = () => {
     // =========================
     // STATE
     // =========================
     const [omset, setOmset] = useState(0);
-
     const [estimatedTax, setEstimatedTax] = useState(0);
+    const [taxHistory, setTaxHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // =========================
     // FORMAT RUPIAH
@@ -16,23 +18,48 @@ const TaxCalculator = () => {
     };
 
     // =========================
+    // FETCH DATA
+    // =========================
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Ambil estimasi pajak otomatis dari server (berdasarkan omzet riil)
+                const taxRes = await api.dashboard.getTax();
+                if (taxRes && taxRes.estimated_yearly_revenue) {
+                    setOmset(taxRes.estimated_yearly_revenue);
+                    setEstimatedTax(taxRes.estimated_tax);
+                }
+
+                // Ambil riwayat transaksi, filter untuk Pajak
+                const transRes = await api.transactions.getAll();
+                if (transRes) {
+                    const pajakHistory = transRes.filter((t) => 
+                        (t.merchant && t.merchant.toLowerCase().includes("pajak pph final")) || 
+                        (t.category_name && t.category_name.toLowerCase() === "pajak")
+                    );
+                    setTaxHistory(pajakHistory);
+                }
+            } catch (error) {
+                console.error("Error fetching tax data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // =========================
     // HANDLE INPUT
     // =========================
     const handleOmsetChange = (e) => {
         const rawValue = e.target.value.replace(/\D/g, "");
-
         const parsedValue = Number(rawValue) || 0;
-
         setOmset(parsedValue);
 
-        // kalkulasi lokal sementara
+        // kalkulasi lokal sementara (jika user ingin input manual)
         setEstimatedTax(parsedValue * 0.005);
     };
-
-    // =========================
-    // HISTORY KOSONG DULU
-    // =========================
-    const taxHistory = [];
 
     return (
         <div className="p-8 lg:p-12 max-w-6xl mx-auto">
@@ -50,7 +77,7 @@ const TaxCalculator = () => {
                         </h3>
 
                         <p className="text-on-surface-variant text-lg max-w-lg">
-                            Kalkulator estimasi PPh Final UMKM.
+                            Kalkulator estimasi PPh Final UMKM. Data otomatis ditarik dari pemasukan rata-rata Anda.
                         </p>
                     </div>
 
@@ -60,7 +87,7 @@ const TaxCalculator = () => {
                             className="block text-sm font-semibold text-on-surface-variant mb-3 uppercase tracking-wider"
                             htmlFor="omset"
                         >
-                            Total Omset Bulanan (Rp)
+                            Total Estimasi Omset Setahun (Rp)
                         </label>
 
                         <div className="relative">
@@ -75,13 +102,13 @@ const TaxCalculator = () => {
                                 type="text"
                                 value={omset === 0 ? "" : formatRupiah(omset)}
                                 onChange={handleOmsetChange}
-                                placeholder="0"
+                                placeholder={loading ? "Memuat data..." : "0"}
                                 className="block w-full pl-16 pr-12 py-5 bg-surface-container-highest border-none rounded-lg text-3xl font-extrabold text-on-surface focus:ring-4 focus:ring-primary/20 transition-all outline-none"
                             />
                         </div>
 
                         <p className="mt-4 text-sm text-on-surface-variant/80 italic">
-                            Masukkan total pendapatan kotor usaha Anda.
+                            Masukkan atau edit total pendapatan kotor usaha Anda dalam setahun.
                         </p>
                     </div>
 
@@ -121,8 +148,8 @@ const TaxCalculator = () => {
                         </h4>
 
                         <p className="text-sm text-on-surface-variant leading-relaxed">
-                            UMKM dengan omset di bawah Rp 4,8 miliar per tahun
-                            dapat menggunakan tarif PPh Final 0,5%.
+                            UMKM dengan omzet di bawah Rp 4,8 miliar per tahun
+                            dapat menggunakan tarif PPh Final 0,5%. Estimasi kami mengambil rata-rata pendapatan bulanan Anda lalu mengalikannya dengan 12.
                         </p>
                     </div>
                 </div>
@@ -132,22 +159,33 @@ const TaxCalculator = () => {
             <section className="mt-16 space-y-6">
                 <div className="flex items-end justify-between px-2">
                     <h4 className="text-2xl font-extrabold tracking-tight">
-                        Riwayat Catatan Pajak
+                        Riwayat Pembayaran Pajak
                     </h4>
                 </div>
 
-                {taxHistory.length === 0 ? (
+                {loading ? (
+                     <div className="bg-surface-container-lowest p-8 rounded-xl text-center text-on-surface-variant">
+                     Memuat data riwayat pajak...
+                 </div>
+                ) : taxHistory.length === 0 ? (
                     <div className="bg-surface-container-lowest p-8 rounded-xl text-center text-on-surface-variant">
                         Belum ada data riwayat pajak.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                         {taxHistory.map((item) => (
                             <div
                                 key={item.id}
-                                className="bg-surface-container-lowest p-6 rounded-xl"
+                                className="bg-white border p-6 rounded-xl flex items-center justify-between"
                             >
-                                {item.monthName}
+                                <div>
+                                    <h5 className="font-bold text-lg">{item.merchant || "Pajak UMKM"}</h5>
+                                    <p className="text-sm text-gray-500">{new Date(item.transaction_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })} - Kategori: {item.category_name}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-extrabold text-red-600">- Rp {formatRupiah(item.amount)}</p>
+                                    <span className="text-xs uppercase bg-gray-100 px-2 py-1 rounded text-gray-600 font-bold tracking-widest">{item.source || "Manual"}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
