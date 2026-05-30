@@ -18,6 +18,7 @@ export const getSummary = async (userId) => {
         income: Number(data.income) || 0,
         expense: Number(data.expense) || 0,
         profit: (Number(data.income) || 0) - (Number(data.expense) || 0),
+        total_income: Number(data.income) || 0,
         total_expense: Number(data.expense) || 0,
         balance: (Number(data.income) || 0) - (Number(data.expense) || 0),
     };

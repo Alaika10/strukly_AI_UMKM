@@ -21,12 +21,17 @@ export const create = async (req, res) => {
             return res.status(400).json({ error: "Amount is required" });
         }
 
-        const categoryId =
-            data.category_id ||
-            (data.category
-                ? (await getCategoryByName(data.category))?.id
-                : null) ||
-            1;
+        let categoryId = data.category_id || null;
+        if (!categoryId && data.category) {
+            const cat = await getCategoryByName(data.category);
+            categoryId = cat?.id;
+        }
+        
+        // If category_id is provided but we are unsure if it exists (e.g. 9 for Pajak), 
+        // we can safely fallback to 5 (Expense) or 1 (Income) if it's out of bounds 1-8.
+        if (categoryId > 8 || !categoryId) {
+            categoryId = data.type === 'expense' ? 5 : 1;
+        }
 
         const mappedData = {
             user_id: req.user.id,
@@ -248,11 +253,15 @@ export const update = async (req, res) => {
 
         const data = req.body;
 
-        const categoryId =
-            data.category_id ||
-            (data.category
-                ? (await getCategoryByName(data.category))?.id
-                : null);
+        let categoryId = data.category_id || null;
+        if (!categoryId && data.category) {
+            const cat = await getCategoryByName(data.category);
+            categoryId = cat?.id;
+        }
+
+        if (categoryId > 8) {
+            categoryId = data.type === 'expense' ? 5 : 1;
+        }
 
         const payload = {
             ...data,
