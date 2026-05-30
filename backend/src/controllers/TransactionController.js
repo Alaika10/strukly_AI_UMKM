@@ -5,7 +5,7 @@ import {
     deleteTransaction,
 } from "../models/TransactionModel.js";
 
-import { getCategoryByName } from "../models/CategoryModel.js";
+import { getCategoryByName, getCategoryById } from "../models/CategoryModel.js";
 import { sendToOCR } from "../service/OcrService.js";
 import { createNotification } from "../models/NotificationModel.js";
 import { getMappedCategoryId, getUncategorizedId } from "../service/CategoryMappingService.js";
@@ -32,6 +32,15 @@ export const create = async (req, res) => {
             categoryId = data.type === 'expense' ? (uncategorizedId || 5) : 1; // Default fallback
         }
 
+        // Force tax transaction
+        if (data.merchant === 'Pajak PPh Final 0.5%') {
+            categoryId = 5;
+            data.type = 'expense';
+            console.log("Tax Transaction Intercepted/Created");
+            console.log("Category ID:", categoryId);
+            console.log("Transaction Type:", data.type);
+        }
+
         const mappedData = {
             user_id: req.user.id,
             category_id: categoryId,
@@ -42,6 +51,14 @@ export const create = async (req, res) => {
             source: "manual",
             type: data.type || "expense",
         };
+
+        // Category Type Validation
+        if (mappedData.category_id) {
+            const categoryMeta = await getCategoryById(mappedData.category_id);
+            if (categoryMeta && categoryMeta.type !== mappedData.type) {
+                return res.status(400).json({ error: "Kategori tidak sesuai dengan jenis transaksi" });
+            }
+        }
 
         const result = await createTransaction(mappedData);
 
@@ -265,10 +282,27 @@ export const update = async (req, res) => {
             categoryId = data.type === 'expense' ? (uncategorizedId || 5) : 1;
         }
 
+        // Force tax transaction
+        if (data.merchant === 'Pajak PPh Final 0.5%') {
+            categoryId = 5;
+            data.type = 'expense';
+            console.log("Tax Transaction Intercepted/Updated");
+            console.log("Category ID:", categoryId);
+            console.log("Transaction Type:", data.type);
+        }
+
         const payload = {
             ...data,
             category_id: categoryId || data.category_id,
         };
+
+        // Category Type Validation
+        if (payload.category_id && payload.type) {
+            const categoryMeta = await getCategoryById(payload.category_id);
+            if (categoryMeta && categoryMeta.type !== payload.type) {
+                return res.status(400).json({ error: "Kategori tidak sesuai dengan jenis transaksi" });
+            }
+        }
 
         const result = await updateTransaction(
             transactionId,

@@ -23,3 +23,12 @@ export const getAllCategories = async (type) => {
     const result = await pool.query(query, params);
     return result.rows;
 };
+
+export const getCategoryById = async (id) => {
+    const result = await pool.query(
+        `SELECT id, name, type FROM categories WHERE id = $1 LIMIT 1`,
+        [id],
+    );
+
+    return result.rows[0];
+};

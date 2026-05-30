@@ -3,20 +3,6 @@ import { api } from '../services/api';
 import { StatCard, ActionButton } from '../components/Dashboard/Cards';
 import TransactionTable from '../components/Dashboard/TransactionTable';
 
-const INCOME_CATEGORIES = {
-  'Makanan Berat': 1,
-  'Minuman Sejuk': 2,
-  'Camilan / Side Dish': 3,
-  'Paket Katering': 4
-};
-
-const EXPENSE_CATEGORIES = {
-  'Bahan Baku': 5,
-  'Listrik & Air': 6,
-  'Gaji Karyawan': 7,
-  'Peralatan': 8,
-  'Pajak': 9
-};
 
 const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
@@ -39,15 +25,19 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
   // State Form Pemasukan
   const [incAmount, setIncAmount] = useState('');
   const [incomeSource, setIncomeSource] = useState('langsung');
-  const [incCategory, setIncCategory] = useState('Makanan Berat');
+  const [incCategory, setIncCategory] = useState('');
   const [savingIncome, setSavingIncome] = useState(false);
 
   // State Form Pengeluaran Manual
   const [expVendor, setExpVendor] = useState('');
   const [expAmount, setExpAmount] = useState('');
-  const [expCategory, setExpCategory] = useState('Bahan Baku');
+  const [expCategory, setExpCategory] = useState('');
   const [expDate, setExpDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingExpense, setSavingExpense] = useState(false);
+
+  // Categories State
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
 
   // State Smart Scan AI OCR
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -67,6 +57,13 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
              total_expense: Number(sumData?.total_expense) || 0,
              balance: Number(sumData?.balance) || 0,
          });
+
+         const incomeCats = await api.categories.getAll('income');
+         const expenseCats = await api.categories.getAll('expense');
+         setIncomeCategories(incomeCats || []);
+         setExpenseCategories(expenseCats || []);
+         if (incomeCats && incomeCats.length > 0 && !incCategory) setIncCategory(incomeCats[0].id);
+         if (expenseCats && expenseCats.length > 0 && !expCategory) setExpCategory(expenseCats[0].id);
 
          const insightRes = await api.dashboard.getInsight();
 
@@ -117,7 +114,7 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
 
     setSavingIncome(true);
     try {
-      const categoryId = INCOME_CATEGORIES[incCategory] || 1;
+      const categoryId = incCategory || (incomeCategories.length > 0 ? incomeCategories[0].id : 1);
       const merchant = `Pemasukan - ${incomeSource === 'langsung' ? 'Langsung' : 'Online'}`;
       const transactionDate = new Date().toISOString().split('T')[0];
 
@@ -157,7 +154,7 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
 
     setSavingExpense(true);
     try {
-      const categoryId = EXPENSE_CATEGORIES[expCategory] || 5;
+      const categoryId = expCategory || (expenseCategories.length > 0 ? expenseCategories[0].id : 5);
 
       await api.transactions.createManual({
         amount: Number(expAmount),
@@ -334,10 +331,9 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
                         onChange={(e) => setIncCategory(e.target.value)}
                         className="bg-none w-full h-full bg-slate-50 hover:bg-slate-100 border-none rounded-xl px-5 font-bold text-slate-700 text-base focus:ring-2 focus:ring-[#003d9b]/20 outline-none appearance-none cursor-pointer transition-colors"
                       >
-                        <option>Makanan Berat</option>
-                        <option>Minuman Sejuk</option>
-                        <option>Camilan / Side Dish</option>
-                        <option>Paket Katering</option>
+                        {incomeCategories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
                       </select>
                       <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">keyboard_arrow_down</span>
                     </div>
@@ -441,11 +437,9 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
                       onChange={(e) => setExpCategory(e.target.value)}
                       className="bg-none w-full bg-slate-50 border-none rounded-xl p-4 text-sm font-semibold focus:ring-2 focus:ring-[#003d9b]/20 outline-none appearance-none cursor-pointer"
                     >
-                      <option>Bahan Baku</option>
-                      <option>Listrik & Air</option>
-                      <option>Gaji Karyawan</option>
-                      <option>Peralatan</option>
-                      <option>Pajak</option>
+                        {expenseCategories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
                     </select>
                     <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">keyboard_arrow_down</span>
                   </div>
@@ -523,7 +517,8 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
                   onClick={() => {
                     setExpAmount(estimasiPajak);
                     setExpVendor('Pajak PPh Final 0.5%');
-                    setExpCategory('Pajak');
+                    const pajakCat = expenseCategories.find(c => c.name.toLowerCase().includes('pajak'));
+                    setExpCategory(pajakCat ? pajakCat.id : 5);
                     setIsTaxModalOpen(false);
                     setIsExpenseModalOpen(true);
                   }}
