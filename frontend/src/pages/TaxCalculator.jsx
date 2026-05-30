@@ -7,6 +7,7 @@ const TaxCalculator = () => {
     // =========================
     const [omset, setOmset] = useState(0);
     const [estimatedTax, setEstimatedTax] = useState(0);
+    const [taxData, setTaxData] = useState(null);
     const [taxHistory, setTaxHistory] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -25,9 +26,12 @@ const TaxCalculator = () => {
             try {
                 // Ambil estimasi pajak otomatis dari server (berdasarkan omzet riil)
                 const taxRes = await api.dashboard.getTax();
-                if (taxRes && taxRes.estimated_yearly_revenue) {
-                    setOmset(taxRes.estimated_yearly_revenue);
-                    setEstimatedTax(taxRes.estimated_tax);
+                if (taxRes) {
+                    if (taxRes.estimated_yearly_revenue !== undefined) {
+                        setOmset(taxRes.estimated_yearly_revenue);
+                        setEstimatedTax(taxRes.estimated_tax);
+                    }
+                    setTaxData(taxRes);
                 }
 
                 // Ambil riwayat transaksi, filter untuk Pajak
@@ -61,6 +65,17 @@ const TaxCalculator = () => {
         setEstimatedTax(parsedValue * 0.005);
     };
 
+    // Fungsi helper untuk mendapatkan warna status
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'loss': return 'text-red-600 bg-red-50 border-red-200';
+            case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
+            case 'warning': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+            case 'info':
+            default: return 'text-blue-600 bg-blue-50 border-blue-200';
+        }
+    };
+
     return (
         <div className="p-8 lg:p-12 max-w-6xl mx-auto">
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -77,9 +92,32 @@ const TaxCalculator = () => {
                         </h3>
 
                         <p className="text-on-surface-variant text-lg max-w-lg">
-                            Kalkulator estimasi PPh Final UMKM. Data otomatis ditarik dari pemasukan rata-rata Anda.
+                            Kalkulator estimasi PPh Final UMKM. Data otomatis ditarik dari rata-rata performa usaha Anda.
                         </p>
                     </div>
+
+                    {/* ALERT / MESSAGE (Jika ada data) */}
+                    {taxData && taxData.status && (
+                        <div className={`p-4 rounded-xl border ${getStatusColor(taxData.status)} flex gap-3 items-start`}>
+                            <span className="material-symbols-outlined mt-0.5">
+                                {taxData.status === 'loss' ? 'warning' : taxData.status === 'info' ? 'info' : 'campaign'}
+                            </span>
+                            <div>
+                                <h4 className="font-bold">Status Kesehatan Finansial</h4>
+                                <p className="text-sm mt-1">{taxData.message}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {taxData && taxData.financial_alert && (
+                        <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex gap-3 items-start">
+                            <span className="material-symbols-outlined mt-0.5">trending_down</span>
+                            <div>
+                                <h4 className="font-bold">Peringatan Keuangan</h4>
+                                <p className="text-sm mt-1">{taxData.financial_alert}</p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* INPUT */}
                     <div className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10">
@@ -136,6 +174,29 @@ const TaxCalculator = () => {
 
                 {/* RIGHT */}
                 <div className="lg:col-span-5 space-y-6">
+                    {taxData && (
+                        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                            <h4 className="font-bold text-lg text-slate-800">Ringkasan Finansial Anda</h4>
+                            
+                            <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span className="text-sm text-slate-500 font-medium">Total Pemasukan</span>
+                                <span className="font-bold text-emerald-600">Rp {formatRupiah(taxData.total_income)}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span className="text-sm text-slate-500 font-medium">Total Pengeluaran</span>
+                                <span className="font-bold text-red-600">Rp {formatRupiah(taxData.total_expense)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center py-2 bg-slate-50 px-3 rounded-lg">
+                                <span className="text-sm font-bold text-slate-700">Keuntungan Bersih (Profit)</span>
+                                <span className={`font-extrabold ${taxData.net_profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    Rp {formatRupiah(taxData.net_profit)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-surface-container-low p-6 rounded-xl space-y-4">
                         <div className="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center">
                             <span className="material-symbols-outlined text-on-secondary-container">
