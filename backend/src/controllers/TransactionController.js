@@ -100,7 +100,8 @@ export const createFromOCR = async (req, res) => {
         }
 
         // 2. Mapping & Fallbacks
-        const merchant = ocrResult.merchant || "Unknown Merchant";
+        const rawMerchant = ocrResult.merchant;
+        const merchant = rawMerchant || "Unknown Merchant";
         
         const amountVal = ocrResult.total !== undefined ? ocrResult.total : ocrResult.total_belanja;
         let amount = 0;
@@ -111,11 +112,17 @@ export const createFromOCR = async (req, res) => {
             amount = match ? parseInt(match[0].replace(/[.,]/g, "")) : 0;
         }
 
+        const missing_fields = [];
+
         // 6. Error Handling: Jika OCR berhasil tetapi amount kosong/0
         if (!amount || amount <= 0) {
             return res.status(400).json({
-                error: "OCR result missing amount"
+                error: "OCR result missing amount. Silakan update ulang atau gunakan struk yang baru."
             });
+        }
+
+        if (!rawMerchant || rawMerchant === "Tidak ditemukan" || rawMerchant.trim() === "") {
+            missing_fields.push("merchant");
         }
 
         // Confidence & need_review
@@ -127,8 +134,27 @@ export const createFromOCR = async (req, res) => {
             }
         }
 
-        // 3. Confidence Logic: need_review = confidence < 75
-        const need_review = confidence < 75;
+        // Transaction Date parsing (support DD-MM-YYYY to YYYY-MM-DD)
+        const rawDate = ocrResult.date || ocrResult.tanggal_transaksi;
+        let transaction_date = rawDate;
+        if (transaction_date && typeof transaction_date === "string") {
+            const parts = transaction_date.split(/[-/]/);
+            if (parts.length === 3) {
+                if (parts[2].length === 4) { // Year is at the end (DD-MM-YYYY)
+                    transaction_date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                } else if (parts[0].length === 4) { // Year is at the front (YYYY-MM-DD)
+                    transaction_date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                }
+            }
+        }
+        
+        if (!transaction_date || transaction_date === "Tidak ditemukan" || String(transaction_date).trim() === "") {
+            missing_fields.push("transaction_date");
+            transaction_date = new Date().toISOString().split("T")[0];
+        }
+
+        // 3. Confidence Logic: need_review = confidence < 75 || missing_fields.length > 0
+        const need_review = confidence < 75 || missing_fields.length > 0;
 
         // Items
         const items = Array.isArray(ocrResult.items) ? ocrResult.items : [];
@@ -142,22 +168,6 @@ export const createFromOCR = async (req, res) => {
         const categoryRecord = await getCategoryByName(cleanCategoryName);
         const categoryId = categoryRecord?.id || 1;
         const finalCategoryName = cleanCategoryName;
-
-        // Transaction Date parsing (support DD-MM-YYYY to YYYY-MM-DD)
-        let transaction_date = ocrResult.date || ocrResult.tanggal_transaksi;
-        if (transaction_date && typeof transaction_date === "string") {
-            const parts = transaction_date.split(/[-/]/);
-            if (parts.length === 3) {
-                if (parts[2].length === 4) { // Year is at the end (DD-MM-YYYY)
-                    transaction_date = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                } else if (parts[0].length === 4) { // Year is at the front (YYYY-MM-DD)
-                    transaction_date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-                }
-            }
-        }
-        if (!transaction_date) {
-            transaction_date = new Date().toISOString().split("T")[0];
-        }
 
         // 4. Save transaction to Database
         const mappedData = {
@@ -198,6 +208,7 @@ export const createFromOCR = async (req, res) => {
             category_name: finalCategoryName,
             confidence: confidence,
             need_review: need_review,
+            missing_fields: missing_fields,
             items: items,
             raw_text: rawText,
             source: result?.source || "ocr",

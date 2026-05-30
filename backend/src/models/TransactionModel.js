@@ -92,3 +92,39 @@ export const deleteTransaction = async (id, userId) => {
 
     return result.rows[0];
 };
+
+export const bulkCreateTransactions = async (transactions) => {
+    if (!transactions || transactions.length === 0) return [];
+
+    const values = [];
+    const placeholders = [];
+
+    let i = 1;
+    transactions.forEach(t => {
+        placeholders.push(`($${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++})`);
+        values.push(
+            t.user_id,
+            t.category_id || 1,
+            t.amount,
+            t.merchant || 'Synthetic',
+            t.transaction_date || new Date().toISOString().split("T")[0],
+            t.source || 'manual',
+            t.type || 'expense',
+            t.confidence !== undefined && t.confidence !== null ? parseFloat(t.confidence) : null,
+            t.need_review !== undefined && t.need_review !== null ? !!t.need_review : false,
+            t.raw_text || null,
+            t.cleaned_text || null,
+            t.items ? (typeof t.items === "string" ? t.items : JSON.stringify(t.items)) : null
+        );
+    });
+
+    const query = `
+    INSERT INTO transactions 
+    (user_id, category_id, amount, merchant, transaction_date, source, type, confidence, need_review, raw_text, cleaned_text, items)
+    VALUES ${placeholders.join(', ')}
+    RETURNING *;
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows;
+};

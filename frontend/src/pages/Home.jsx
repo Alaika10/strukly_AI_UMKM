@@ -254,6 +254,10 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
             icon="calculate" title="Hitung Pajak" colorClass="bg-secondary" desc="Hitung estimasi pajak PPh Final 0,5% dengan cepat." 
             onClick={() => setIsTaxModalOpen(true)} 
           />
+          <ActionButton 
+            icon="monitoring" title="Dashboard Analitik" colorClass="bg-emerald-600" desc="Lihat performa bisnismu di dashboard." 
+            onClick={() => window.open(import.meta.env.VITE_STREAMLIT_URL || "https://your-dashboard.streamlit.app", "_blank")} 
+          />
         </div>
       </section>
 

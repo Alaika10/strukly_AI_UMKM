@@ -11,6 +11,7 @@ import insightRoutes from "./routes/Insight.Routes.js";
 import alertRoutes from "./routes/Alert.Routes.js";
 import settingsRoutes from "./routes/Settings.Routes.js";
 import notificationRoutes from "./routes/Notification.Routes.js";
+import syntheticRoutes from "./routes/Synthetic.Routes.js";
 import morgan from "morgan";
 
 
@@ -55,6 +56,7 @@ app.use("/api/insight", insightRoutes);
 app.use("/api/alert", alertRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/synthetic", syntheticRoutes);
 
 
 export default app;
