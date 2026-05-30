@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import EditTransactionModal from '../components/EditTransactionModal';
 
 const INCOME_CATEGORIES = {
   'Makanan Berat': 1,
@@ -15,6 +16,18 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
   const [amount, setAmount] = useState('');
   const [categoryName, setCategoryName] = useState('Makanan Berat');
   const [saving, setSaving] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  const handleDelete = async (id) => {
+    if(window.confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+       try {
+           await api.transactions.delete(id);
+           if(refreshTransactions) refreshTransactions();
+       } catch (err) {
+           alert(err.message || "Gagal menghapus transaksi.");
+       }
+    }
+  }
 
   // User Profile dari localStorage
   const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -184,6 +197,7 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Sumber</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Kategori</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Nominal</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -205,6 +219,14 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
                     <td className="px-6 py-4 text-right font-extrabold text-emerald-600">
                       Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button onClick={() => setEditingItem(item)} className="text-blue-500 hover:text-blue-700 mx-2 p-1 bg-blue-50 rounded" title="Edit">
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded" title="Hapus">
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {transactions.filter(t => t.type === 'in').length === 0 && (
@@ -218,6 +240,16 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
             </table>
           </div>
         </div>
+        
+        {/* Modal Edit */}
+        <EditTransactionModal 
+          isOpen={!!editingItem} 
+          transaction={editingItem} 
+          onClose={() => setEditingItem(null)}
+          onSave={() => {
+            if (refreshTransactions) refreshTransactions();
+          }}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import EditTransactionModal from '../components/EditTransactionModal';
 
 const EXPENSE_CATEGORIES_MAPPING = {
   'Logistik': 5,
@@ -23,6 +24,20 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
   // Loading state
   const [loadingManual, setLoadingManual] = useState(false);
   const [loadingOCR, setLoadingOCR] = useState(false);
+
+  // State untuk edit & delete
+  const [editingItem, setEditingItem] = useState(null);
+
+  const handleDelete = async (id) => {
+    if(window.confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+       try {
+           await api.transactions.delete(id);
+           if(refreshTransactions) refreshTransactions();
+       } catch (err) {
+           alert(err.message || "Gagal menghapus transaksi.");
+       }
+    }
+  }
 
   // Fungsi memicu jendela file explorer / kamera HP
   const handleUploadClick = () => {
@@ -279,6 +294,7 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Kategori</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Status AI</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Nominal</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -305,6 +321,14 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
                     <td className="px-6 py-4 text-right font-extrabold text-red-600">
                       Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button onClick={() => setEditingItem(item)} className="text-blue-500 hover:text-blue-700 mx-2 p-1 bg-blue-50 rounded" title="Edit">
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded" title="Hapus">
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {transactions.filter(t => t.type === 'out').length === 0 && (
@@ -318,6 +342,16 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
             </table>
           </div>
         </div>
+        
+        {/* Modal Edit */}
+        <EditTransactionModal 
+          isOpen={!!editingItem} 
+          transaction={editingItem} 
+          onClose={() => setEditingItem(null)}
+          onSave={() => {
+            if (refreshTransactions) refreshTransactions();
+          }}
+        />
       </div>
     </div>
   );

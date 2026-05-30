@@ -1,9 +1,23 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { api } from '../services/api';
+import EditTransactionModal from '../components/EditTransactionModal';
 
-const History = ({ transactions = [] }) => {
+const History = ({ transactions = [], refreshTransactions }) => {
   const location = useLocation();
+  const [editingItem, setEditingItem] = useState(null);
+
+  const handleDelete = async (id) => {
+    if(window.confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+       try {
+           await api.transactions.delete(id);
+           if(refreshTransactions) refreshTransactions();
+       } catch (err) {
+           alert(err.message || "Gagal menghapus transaksi.");
+       }
+    }
+  }
 
   // State untuk Filter
   const [filterType, setFilterType] = useState(location.state?.filterType || 'all');
@@ -140,6 +154,7 @@ const History = ({ transactions = [] }) => {
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Kategori</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Tipe</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Nominal</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right w-24">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -179,22 +194,41 @@ const History = ({ transactions = [] }) => {
                         </div>
                       )}
                     </td>
-                    <td className={`px-6 py-5 text-right font-extrabold whitespace-nowrap ${item.type === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {item.type === 'in' ? '+' : '-'} Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
+                      <td className={`px-6 py-5 text-right font-extrabold whitespace-nowrap ${item.type === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {item.type === 'in' ? '+' : '-'} Rp {new Intl.NumberFormat("id-ID").format(item.amount)}
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap text-right">
+                        <button onClick={() => setEditingItem(item)} className="text-blue-500 hover:text-blue-700 mx-2 p-1 bg-blue-50 rounded" title="Edit">
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded" title="Hapus">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center text-slate-400">
+                      <span className="material-symbols-outlined text-4xl mb-2 opacity-50">search_off</span>
+                      <p className="font-medium">Tidak ada transaksi yang ditemukan.</p>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
-                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">search_off</span>
-                    <p className="font-medium">Tidak ada transaksi yang ditemukan.</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Modal Edit */}
+        <EditTransactionModal 
+          isOpen={!!editingItem} 
+          transaction={editingItem} 
+          onClose={() => setEditingItem(null)}
+          onSave={() => {
+            if (refreshTransactions) refreshTransactions();
+          }}
+        />
       </div>
     </div>
   );

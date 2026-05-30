@@ -109,10 +109,14 @@ function App() {
                     t.createdAt || t.created_at
                 ),
 
+                rawDate: new Date(t.transaction_date || t.createdAt || t.created_at || new Date()).toISOString().split("T")[0],
+
                 amount: Number(t.amount),
 
                 category:
                     CATEGORIES[t.category_id] || t.category_name || "Umum",
+                    
+                rawCategory: t.category_name || CATEGORIES[t.category_id] || "Umum",
 
                 source: t.type === "income" ? "Penjualan Langsung" : undefined,
 
