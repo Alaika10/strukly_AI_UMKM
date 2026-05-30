@@ -8,6 +8,7 @@ import {
 import { getCategoryByName } from "../models/CategoryModel.js";
 import { sendToOCR } from "../service/OcrService.js";
 import { createNotification } from "../models/NotificationModel.js";
+import { getMappedCategoryId, getUncategorizedId } from "../service/CategoryMappingService.js";
 
 
 // CREATE MANUAL
@@ -27,7 +28,8 @@ export const create = async (req, res) => {
         }
         
         if (!categoryId) {
-            categoryId = data.type === 'expense' ? 5 : 1; // Default fallback
+            const uncategorizedId = await getUncategorizedId();
+            categoryId = data.type === 'expense' ? (uncategorizedId || 5) : 1; // Default fallback
         }
 
         const mappedData = {
@@ -165,9 +167,13 @@ export const createFromOCR = async (req, res) => {
         const rawText = ocrResult.ocr_mentah || ocrResult.raw_text || "";
 
         // Category mapping
-        const categoryId = ocrResult.category_id || 5; // Default to Other/Pajak/Expense if not provided
+        const categoryId = await getMappedCategoryId(ocrResult.category_name);
+        
+        console.log("OCR Category:", ocrResult.category_name);
+        console.log("Mapped Category ID:", categoryId);
+        
         // name will be handled by the database JOIN, but we can pass a fallback for response if needed.
-        const finalCategoryName = ocrResult.category_name || "Kategori OCR";
+        const finalCategoryName = ocrResult.category_name || "Belum Dikategorikan";
 
         // 4. Save transaction to Database
         const mappedData = {
@@ -255,7 +261,8 @@ export const update = async (req, res) => {
         }
 
         if (!categoryId) {
-            categoryId = data.type === 'expense' ? 5 : 1;
+            const uncategorizedId = await getUncategorizedId();
+            categoryId = data.type === 'expense' ? (uncategorizedId || 5) : 1;
         }
 
         const payload = {
