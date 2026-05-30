@@ -1,21 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import EditTransactionModal from '../components/EditTransactionModal';
 
-const INCOME_CATEGORIES = {
-  'Makanan Berat': 1,
-  'Minuman Sejuk': 2,
-  'Camilan / Side Dish': 3,
-  'Paket Katering': 4
-};
+// Categories fetched dynamically
 
 const InputIncome = ({ transactions = [], refreshTransactions }) => {
   const navigate = useNavigate();
   const [source, setSource] = useState('langsung');
   const [amount, setAmount] = useState('');
-  const [categoryName, setCategoryName] = useState('Makanan Berat');
+  const [categories, setCategories] = useState([]);
+  const [categoryId, setCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await api.categories.getAll('income');
+        setCategories(data);
+        if (data.length > 0) setCategoryId(data[0].id);
+      } catch (err) {
+        console.error("Failed to load income categories");
+      }
+    };
+    fetchCategories();
+  }, []);
   const [editingItem, setEditingItem] = useState(null);
 
   const handleDelete = async (id) => {
@@ -42,13 +52,13 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
 
     setSaving(true);
     try {
-      const categoryId = INCOME_CATEGORIES[categoryName] || 1;
+      const category_id = Number(categoryId) || categories[0]?.id || 6;
       const merchant = `Pemasukan - ${source === 'langsung' ? 'Langsung' : 'Online'}`;
       const transactionDate = new Date().toISOString().split('T')[0];
 
       await api.transactions.createManual({
         amount: Number(amount),
-        category_id: categoryId,
+        category_id: category_id,
         merchant,
         transaction_date: transactionDate,
         type: 'income'
@@ -137,14 +147,14 @@ const InputIncome = ({ transactions = [], refreshTransactions }) => {
               <div className="space-y-4">
                 <label className="text-sm font-semibold tracking-wider text-on-surface-variant uppercase">Kategori Menu</label>
                 <select 
-                  value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full bg-surface-container-highest border-none rounded-xl py-6 px-4 font-bold text-on-surface focus:ring-2 focus:ring-primary/20 cursor-pointer outline-none appearance-none"
                 >
-                  <option>Makanan Berat</option>
-                  <option>Minuman Sejuk</option>
-                  <option>Camilan / Side Dish</option>
-                  <option>Paket Katering</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  {categories.length === 0 && <option value="">Loading...</option>}
                 </select>
               </div>
             </div>

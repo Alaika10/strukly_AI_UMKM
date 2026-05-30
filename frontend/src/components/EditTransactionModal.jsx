@@ -5,19 +5,34 @@ const EditTransactionModal = ({ isOpen, onClose, transaction, onSave }) => {
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
-    category: '',
+    category_id: '',
     date: ''
   });
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     if (transaction) {
       setFormData({
         title: transaction.type === 'in' ? transaction.title : transaction.vendor,
         amount: transaction.amount,
-        category: transaction.rawCategory || transaction.category,
+        category_id: transaction.category_id || '',
         date: transaction.rawDate || new Date().toISOString().split('T')[0]
       });
+      
+      const fetchCategories = async () => {
+        try {
+          const type = transaction.type === 'in' ? 'income' : 'expense';
+          const data = await api.categories.getAll(type);
+          setCategories(data);
+          if (!transaction.category_id && data.length > 0) {
+            setFormData(prev => ({ ...prev, category_id: data[0].id }));
+          }
+        } catch (err) {
+          console.error("Failed to fetch categories", err);
+        }
+      };
+      fetchCategories();
     }
   }, [transaction]);
 
@@ -30,7 +45,7 @@ const EditTransactionModal = ({ isOpen, onClose, transaction, onSave }) => {
       await api.transactions.update(transaction.id, {
         merchant: formData.title,
         amount: Number(formData.amount),
-        category: formData.category,
+        category_id: Number(formData.category_id),
         transaction_date: formData.date,
         type: transaction.type === 'in' ? 'income' : 'expense'
       });
@@ -80,13 +95,17 @@ const EditTransactionModal = ({ isOpen, onClose, transaction, onSave }) => {
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kategori</label>
-            <input 
+            <select 
               required
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-              className="w-full bg-slate-50 border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none" 
-              type="text" 
-            />
+              value={formData.category_id}
+              onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+              className="w-full bg-slate-50 border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none appearance-none cursor-pointer" 
+            >
+              <option value="" disabled>Pilih Kategori</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           
           <div>

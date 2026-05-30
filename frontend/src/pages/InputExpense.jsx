@@ -1,14 +1,9 @@
-import { useState, useRef } from 'react'; 
+import { useState, useEffect, useRef } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import EditTransactionModal from '../components/EditTransactionModal';
 
-const EXPENSE_CATEGORIES_MAPPING = {
-  'Logistik': 5,
-  'Operasional': 6,
-  'Peralatan': 8,
-  'Pajak': 9
-};
+// Categories fetched dynamically
 
 const InputExpense = ({ transactions = [], refreshTransactions }) => {
   const navigate = useNavigate();
@@ -18,8 +13,23 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
   // State untuk form manual
   const [vendor, setVendor] = useState('');
   const [amount, setAmount] = useState('');
-  const [categoryName, setCategoryName] = useState('Logistik');
+  const [categories, setCategories] = useState([]);
+  const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await api.categories.getAll('expense');
+        setCategories(data);
+        if (data.length > 0) setCategoryId(data[0].id);
+      } catch (err) {
+        console.error("Failed to load expense categories");
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Loading state
   const [loadingManual, setLoadingManual] = useState(false);
@@ -104,11 +114,11 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
 
     setLoadingManual(true);
     try {
-      const categoryId = EXPENSE_CATEGORIES_MAPPING[categoryName] || 5;
+      const category_id = Number(categoryId) || categories[0]?.id || 5;
 
       await api.transactions.createManual({
         amount: Number(amount),
-        category_id: categoryId,
+        category_id: category_id,
         merchant: vendor,
         transaction_date: date,
         type: 'expense'
@@ -241,14 +251,14 @@ const InputExpense = ({ transactions = [], refreshTransactions }) => {
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Kategori</label>
                   <div className="relative">
                     <select 
-                      value={categoryName}
-                      onChange={(e) => setCategoryName(e.target.value)}
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none appearance-none cursor-pointer"
                     >
-                      <option>Logistik</option>
-                      <option>Operasional</option>
-                      <option>Peralatan</option>
-                      <option>Pajak</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                      {categories.length === 0 && <option value="">Loading...</option>}
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">keyboard_arrow_down</span>
                   </div>

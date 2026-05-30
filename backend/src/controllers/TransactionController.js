@@ -5,7 +5,6 @@ import {
     deleteTransaction,
 } from "../models/TransactionModel.js";
 
-import { mapCategory } from "../utils/categoryMapper.js";
 import { getCategoryByName } from "../models/CategoryModel.js";
 import { sendToOCR } from "../service/OcrService.js";
 import { createNotification } from "../models/NotificationModel.js";
@@ -27,10 +26,8 @@ export const create = async (req, res) => {
             categoryId = cat?.id;
         }
         
-        // If category_id is provided but we are unsure if it exists (e.g. 9 for Pajak), 
-        // we can safely fallback to 5 (Expense) or 1 (Income) if it's out of bounds 1-8.
-        if (categoryId > 8 || !categoryId) {
-            categoryId = data.type === 'expense' ? 5 : 1;
+        if (!categoryId) {
+            categoryId = data.type === 'expense' ? 5 : 1; // Default fallback
         }
 
         const mappedData = {
@@ -168,11 +165,9 @@ export const createFromOCR = async (req, res) => {
         const rawText = ocrResult.ocr_mentah || ocrResult.raw_text || "";
 
         // Category mapping
-        const categoryNameAI = ocrResult.category_name || "Other";
-        const cleanCategoryName = mapCategory(categoryNameAI);
-        const categoryRecord = await getCategoryByName(cleanCategoryName);
-        const categoryId = categoryRecord?.id || 1;
-        const finalCategoryName = cleanCategoryName;
+        const categoryId = ocrResult.category_id || 5; // Default to Other/Pajak/Expense if not provided
+        // name will be handled by the database JOIN, but we can pass a fallback for response if needed.
+        const finalCategoryName = ocrResult.category_name || "Kategori OCR";
 
         // 4. Save transaction to Database
         const mappedData = {
@@ -259,7 +254,7 @@ export const update = async (req, res) => {
             categoryId = cat?.id;
         }
 
-        if (categoryId > 8) {
+        if (!categoryId) {
             categoryId = data.type === 'expense' ? 5 : 1;
         }
 

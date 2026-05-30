@@ -29,7 +29,7 @@ export const createTransaction = async (data) => {
 
 export const getTransactions = async (userId) => {
     const query = `
-    SELECT t.*, c.name as category
+    SELECT t.*, c.name as category_name
     FROM transactions t
     JOIN categories c ON t.category_id = c.id
     WHERE t.user_id = $1 AND t.is_deleted = FALSE

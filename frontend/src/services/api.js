@@ -124,4 +124,9 @@ export const api = {
   alerts: {
     getAll: () => request('/api/alert/'),
   },
+
+  // 7. Categories (/api/categories)
+  categories: {
+    getAll: (type) => request(`/api/categories${type ? `?type=${type}` : ''}`),
+  },
 };

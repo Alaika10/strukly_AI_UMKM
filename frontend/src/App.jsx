@@ -13,18 +13,7 @@ import TaxCalculator from "./pages/TaxCalculator";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
 
-// Pemetaan ID Kategori ke Nama Kategori
-const CATEGORIES = {
-    1: "Makanan Berat",
-    2: "Minuman Sejuk",
-    3: "Camilan / Side Dish",
-    4: "Paket Katering",
-    5: "Bahan Baku",
-    6: "Operasional",
-    7: "Gaji Karyawan",
-    8: "Peralatan",
-    9: "Pajak",
-};
+// (Categories now fetched dynamically via API and returned as category_name by backend)
 
 const formatTransactionDate = (dateStr, createdDateStr) => {
     try {
@@ -114,9 +103,9 @@ function App() {
                 amount: Number(t.amount),
 
                 category:
-                    CATEGORIES[t.category_id] || t.category_name || "Umum",
+                    t.category_name || "Umum",
                     
-                rawCategory: t.category_name || CATEGORIES[t.category_id] || "Umum",
+                rawCategory: t.category_name || "Umum",
 
                 source: t.type === "income" ? "Penjualan Langsung" : undefined,
 
