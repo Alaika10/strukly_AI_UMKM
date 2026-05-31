@@ -79,6 +79,20 @@ const History = ({ transactions = [], refreshTransactions }) => {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Menyesuaikan lebar kolom agar rapi saat dibuka di Excel
+    const wscols = [
+      { wch: 5 },  // No
+      { wch: 20 }, // Tanggal & Waktu
+      { wch: 15 }, // Tipe Transaksi
+      { wch: 20 }, // Kategori
+      { wch: 30 }, // Keterangan / Judul
+      { wch: 25 }, // Referensi / Catatan
+      { wch: 20 }, // Sumber / Status AI
+      { wch: 20 }  // Nominal (Rp)
+    ];
+    worksheet['!cols'] = wscols;
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Transaksi");
     XLSX.writeFile(workbook, `Laporan_Strukly_${filterMonth.replace(' ', '_')}.xlsx`);
