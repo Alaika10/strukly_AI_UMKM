@@ -253,7 +253,12 @@ const Home = ({ transactions, refreshTransactions, loadingTransactions }) => {
           />
           <ActionButton 
             icon="monitoring" title="Dashboard Analitik" colorClass="bg-emerald-600" desc="Lihat performa bisnismu di dashboard." 
-            onClick={() => window.open(import.meta.env.VITE_STREAMLIT_URL || "https://your-dashboard.streamlit.app", "_blank")} 
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_STREAMLIT_URL || "https://struklyaiumkm-vzhjysaykjq7q3u8skax6x.streamlit.app/";
+              const url = new URL(baseUrl);
+              url.searchParams.set("user_id", savedUser.id);
+              window.open(url.toString(), "_blank");
+            }} 
           />
         </div>
       </section>
