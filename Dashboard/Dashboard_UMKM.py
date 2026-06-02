@@ -4,6 +4,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import datetime
+import os
+from sqlalchemy import create_engine
 
 # SETUP HALAMAN
 st.set_page_config(page_title="Financial Dashboard", layout="wide")
@@ -12,7 +14,26 @@ st.title("Dashboard Keuangan & Penjualan UMKM")
 # LOAD DATASET
 @st.cache_data
 def load_data():
-    df = pd.read_csv("synthetic_umkm_clean.csv")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    if not DATABASE_URL:
+        st.error("DATABASE_URL is not set!")
+        return pd.DataFrame()
+
+    engine = create_engine(DATABASE_URL)
+    query = """
+    SELECT
+        t.id AS id_transaksi,
+        t.merchant AS "Nama_Produk",
+        t.amount AS nominal,
+        CASE WHEN t.type = 'income' THEN 'pemasukan' ELSE 'pengeluaran' END AS type,
+        t.transaction_date AS waktu,
+        c.name AS kategori
+    FROM transactions t
+    LEFT JOIN categories c
+    ON c.id = t.category_id
+    ORDER BY t.transaction_date DESC;
+    """
+    df = pd.read_sql(query, engine)
     df['waktu'] = pd.to_datetime(df['waktu'])
     return df
 

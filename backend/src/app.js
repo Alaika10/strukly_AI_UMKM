@@ -46,7 +46,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-import categoryRoutes from "./routes/CategoryRoutes.js";
+import categoryRoutes from "./routes/Category.Routes.js";
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
