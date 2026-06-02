@@ -6,6 +6,15 @@ import plotly.express as px
 import datetime
 import os
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
+
+# Load env variables from local .env or parent/backend folders
+load_dotenv()
+if os.path.exists("backend/.env"):
+    load_dotenv("backend/.env")
+elif os.path.exists("../backend/.env"):
+    load_dotenv("../backend/.env")
+
 
 # SETUP HALAMAN
 st.set_page_config(page_title="Financial Dashboard", layout="wide")

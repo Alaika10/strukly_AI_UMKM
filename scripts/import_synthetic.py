@@ -4,57 +4,73 @@ import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
-# Try to load environment variable from backend/.env if running from root
-load_dotenv('backend/.env')
+# Try to load environment variables from multiple possible locations
+load_dotenv()
+if os.path.exists("backend/.env"):
+    load_dotenv("backend/.env")
+elif os.path.exists("../backend/.env"):
+    load_dotenv("../backend/.env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set. Please set it in backend/.env")
 
 def map_category(raw_category, type_name):
-    raw = str(raw_category).lower()
+    raw = str(raw_category).lower().strip()
     
     if type_name == 'pengeluaran':
         if 'listrik' in raw or 'air' in raw or 'utilitas' in raw:
-            return 2
+            return 2 # Listrik & Air
         elif 'gaji' in raw or 'karyawan' in raw:
-            return 3
-        elif 'alat' in raw or 'peralatan' in raw:
-            return 4
+            return 3 # Gaji Karyawan
+        elif 'alat' in raw or 'peralatan' in raw or 'operasional' in raw or 'perlengkapan' in raw or 'atk' in raw or 'administrasi' in raw or 'fashion' in raw:
+            return 4 # Peralatan
         elif 'pajak' in raw:
-            return 5
+            return 5 # Pajak
+        elif 'makanan' in raw or 'minuman' in raw or 'baku' in raw:
+            return 1 # Bahan Baku
         else:
-            return 1 # Default expense: Bahan Baku
+            return 11 # Belum Dikategorikan
             
     elif type_name == 'pemasukan':
         if 'makanan' in raw:
-            return 7
+            return 7 # Penjualan Makanan
         elif 'minuman' in raw:
-            return 8
+            return 8 # Penjualan Minuman
         elif 'jasa' in raw:
-            return 9
+            return 9 # Jasa
         elif 'lain' in raw:
-            return 10
+            return 10 # Lainnya
         else:
-            return 6 # Default income: Penjualan Produk
+            return 6 # Penjualan Produk (Default income)
             
-    return 6
+    return 11 # Default fallback: Belum Dikategorikan
 
 def main():
     csv_file = "data/Data_Sintesis/synthetic_umkm_10000.csv"
     if not os.path.exists(csv_file):
+        # try relative to the script location
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_file = os.path.join(script_dir, "../data/Data_Sintesis/synthetic_umkm_10000.csv")
+        
+    if not os.path.exists(csv_file):
         raise FileNotFoundError(f"File not found: {csv_file}")
         
-    print(f"Connecting to DB...")
+    print("Connecting to DB...")
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
-    print("Ensuring user 999 exists...")
+    print("Ensuring user 999 exists with valid bcrypt password hash...")
+    # $2b$10$6XBPqLrPxcNwvtZKu/HYxeyWHdoBS3QLXhJ3qlS5W4/LcqyYDX1t6 is bcrypt hash for 'password123'
+    demo_password_hash = "$2b$10$6XBPqLrPxcNwvtZKu/HYxeyWHdoBS3QLXhJ3qlS5W4/LcqyYDX1t6"
     cursor.execute("""
         INSERT INTO users (id, name, email, password) 
-        VALUES (999, 'Akun Demo', 'demo@umkm.com', 'dummy_hash')
-        ON CONFLICT (id) DO NOTHING;
-    """)
+        VALUES (999, 'Akun Demo', 'demo@umkm.com', %s)
+        ON CONFLICT (id) DO UPDATE SET password = %s;
+    """, (demo_password_hash, demo_password_hash))
+    
+    print("Deleting existing synthetic transactions for user 999...")
+    cursor.execute("DELETE FROM transactions WHERE user_id = 999 AND source = 'synthetic'")
     
     records = []
     with open(csv_file, mode='r', encoding='utf-8') as f:
@@ -89,7 +105,7 @@ def main():
     
     cursor.close()
     conn.close()
-    print("Successfully inserted 10,000 synthetic data to PostgreSQL.")
+    print("Successfully imported 10,000 synthetic data to PostgreSQL.")
 
 if __name__ == "__main__":
     main()
