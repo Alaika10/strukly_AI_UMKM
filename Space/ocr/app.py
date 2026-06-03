@@ -424,6 +424,7 @@ def extract_items(lines):
             seen.add(key)
             final.append(x)
 
+    final = [item.lstrip('0123456789 ') for item in final]
     return final
 
 
@@ -570,3 +571,7 @@ async def proses_gambar_paddle(file: UploadFile = File(...)):
         
     except Exception as e:
         return JSONResponse(status_code=500, content={"sukses": False, "pesan": str(e)})
+
+@app.get("/ping")
+async def antisleep():
+    return {"success": True, "message": "Server OCR aktif"}

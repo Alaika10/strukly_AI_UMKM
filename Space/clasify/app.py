@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import layers
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,13 +23,62 @@ app.add_middleware(
 class ItemRequest(BaseModel):
     items: list[str]
 
+class CustomDense(layers.Layer):
+
+    def __init__(self, units, activation=None, dropout_rate=0.0, **kwargs):
+        super(CustomDense, self).__init__(**kwargs)
+
+        self.units = units
+        self.activation = tf.keras.activations.get(activation)
+        self.dropout_rate = dropout_rate
+        self.dropout = layers.Dropout(dropout_rate)
+
+    def build(self, input_shape):
+
+        self.w = self.add_weight(
+            shape=(input_shape[-1], self.units),
+            initializer='he_normal',
+            trainable=True,
+            name='kernel'
+        )
+
+        self.b = self.add_weight(
+            shape=(self.units,),
+            initializer='zeros',
+            trainable=True,
+            name='bias'
+        )
+
+    def call(self, inputs, training=False):
+
+        x = tf.matmul(inputs, self.w) + self.b
+
+        if self.activation is not None:
+            x = self.activation(x)
+
+        x = self.dropout(x, training=training)
+
+        return x
+
+    def get_config(self):
+
+        config = super().get_config()
+
+        config.update({
+            "units": self.units,
+            "activation": tf.keras.activations.serialize(self.activation),
+            "dropout_rate": self.dropout_rate
+        })
+
+        return config
+
 model = None
 encoder = None
 
 def get_model():
     global model, encoder
     if model is None:
-        model = tf.keras.models.load_model('model_strukly.keras')
+        model = tf.keras.models.load_model('model_strukly.keras', custom_objects={'CustomDense': CustomDense})
         with open('penerjemah_kategori.pkl', 'rb') as file:
             encoder = pickle.load(file)
     return model, encoder
@@ -94,7 +144,7 @@ def classify_items(request: ItemRequest):
             "success": True, 
             "class_id": best_cat_id,
             "category_name": best_cat_name,
-            "confidence": round(best_confidence * 100, 2)
+            "confidence": round(best_confidence, 2)
         }
         
     except Exception as err:
@@ -104,3 +154,7 @@ def classify_items(request: ItemRequest):
             "success": False, "error": str(err), "class_id": None, "category_name": None,
             "confidence": 0.0
         }
+
+@app.get("/ping")
+async def antisleep():
+    return {"success": True, "message": "Server Classify aktif"}
