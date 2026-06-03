@@ -31,7 +31,7 @@ paddle_engine = PaddleOCR(
 )
 
 SPACE_B_URL = "https://struklyai-clasify.hf.space/classify/"
-
+SPACE_C_URL = "https://struklyai-clasify2.hf.space/classify/"
 
 # ENGINE EKSTRAKSI (RULE-BASED + REGEX)
 
@@ -539,23 +539,33 @@ async def proses_gambar_paddle(file: UploadFile = File(...)):
         class_id = None
         class_name = "Tidak Ditemukan"
         confidence = 0.0
-        
+
         if items_list:
-            try:
-                response = requests.post(SPACE_B_URL, json={"items": items_list}, timeout=15)
+            target_spaces = [SPACE_B_URL, SPACE_C_URL]
+            berhasil_klasifikasi = False
+
+            for url in target_spaces:
+                try:
+                    response = requests.post(url, json={"items": items_list}, timeout=15)
                     
-                if response.status_code == 200:
-                    data = response.json()
-                    class_id = data.get("class_id") 
-                    class_name = data.get("category_name")
-                    confidence = data.get("confidence")
-                else:
-                    print(f"Gagal mendapat respons Klasifikasi, status: {response.status_code}")
-                    class_name = f"Error AI (Status {response.status_code})"
+                    if response.status_code == 200:
+                        data = response.json()
+                        class_id = data.get("class_id") 
+                        class_name = data.get("category_name")
+                        confidence = data.get("confidence")
                         
-            except requests.exceptions.RequestException as e:
-                print(f"Koneksi ke Space B gagal: {e}")
-                class_name = "AI Sedang Tidur / Timeout"
+                        berhasil_klasifikasi = True
+                        break  # break loop jika respons 200
+
+                    else:
+                        print(f"Gagal dari {url}, status: {response.status_code}. Beralih ke Next Space")
+                
+                except requests.exceptions.RequestException as e:
+                    print(f"Koneksi ke {url} gagal ({e}). Beralih ke Next Space")
+
+            if not berhasil_klasifikasi:
+                print("Semua Space AI gagal dihubungi.")
+                class_name = "Error AI (Semua Server Down/Limit)"
         
         return {
             "sukses": True, 
